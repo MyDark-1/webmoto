@@ -74,112 +74,72 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
+import { useAdminUserStore } from '../stores/user'
+import { useAdminDataStore } from '../stores/data'
+import { notifyError, notifySuccess } from '../utils/notify'
 
-export default {
-  name: 'PromotionsAdmin',
-  setup() {
-    const store = useStore()
-    const showAddForm = ref(false)
-    const editingPromotion = ref(null)
+const userStore = useAdminUserStore()
+const dataStore = useAdminDataStore()
+const showAddForm = ref(false)
+const editingPromotion = ref(null)
 
-    const form = ref({
-      title: '',
-      content: '',
-      discount: 0,
-      image: '',
-      active: true
-    })
+const form = ref({ title: '', content: '', discount: 0, image: '', active: true })
 
-    const promotions = computed(() => store.state.promotions)
+const promotions = computed(() => dataStore.promotions)
 
-    const savePromotion = async () => {
-      const url = editingPromotion.value 
-        ? `/api/promotions/${editingPromotion.value.id}`
-        : '/api/promotions'
-      
-      const method = editingPromotion.value ? 'PUT' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.state.token}`
-        },
-        body: JSON.stringify(form.value)
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert(editingPromotion.value ? 'Акция обновлена!' : 'Акция добавлена!')
-        cancelEdit()
-        store.dispatch('fetchPromotions')
-      } else {
-        alert('Ошибка: ' + data.error)
-      }
-    }
-
-    const editPromotion = (promotion) => {
-      editingPromotion.value = promotion
-      form.value = {
-        title: promotion.title,
-        content: promotion.content,
-        discount: promotion.discount,
-        image: promotion.image,
-        active: promotion.active
-      }
-      showAddForm.value = true
-    }
-
-    const cancelEdit = () => {
-      showAddForm.value = false
-      editingPromotion.value = null
-      form.value = {
-        title: '',
-        content: '',
-        discount: 0,
-        image: '',
-        active: true
-      }
-    }
-
-    const deletePromotion = async (id) => {
-      if (!confirm('Удалить акцию?')) return
-      
-      const response = await fetch(`/api/promotions/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${store.state.token}`
-        }
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert('Акция удалена!')
-        store.dispatch('fetchPromotions')
-      } else {
-        alert('Ошибка: ' + data.error)
-      }
-    }
-
-    onMounted(() => {
-      store.dispatch('fetchPromotions')
-    })
-
-    return {
-      promotions,
-      showAddForm,
-      editingPromotion,
-      form,
-      savePromotion,
-      editPromotion,
-      cancelEdit,
-      deletePromotion
-    }
+const savePromotion = async () => {
+  const url = editingPromotion.value
+    ? `/api/promotions/${editingPromotion.value.id}`
+    : '/api/promotions'
+  const method = editingPromotion.value ? 'PUT' : 'POST'
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userStore.token}`
+    },
+    body: JSON.stringify(form.value)
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess(editingPromotion.value ? 'Акция обновлена' : 'Акция добавлена')
+    cancelEdit()
+    dataStore.fetchPromotions()
+  } else {
+    notifyError(data.error || 'Ошибка')
   }
 }
+
+const editPromotion = (promotion) => {
+  editingPromotion.value = promotion
+  form.value = { ...promotion }
+  showAddForm.value = true
+}
+
+const cancelEdit = () => {
+  showAddForm.value = false
+  editingPromotion.value = null
+  form.value = { title: '', content: '', discount: 0, image: '', active: true }
+}
+
+const deletePromotion = async (id) => {
+  if (!confirm('Удалить акцию?')) return
+  const response = await fetch(`/api/promotions/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${userStore.token}` }
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess('Акция удалена')
+    dataStore.fetchPromotions()
+  } else {
+    notifyError(data.error || 'Ошибка')
+  }
+}
+
+onMounted(() => dataStore.fetchPromotions())
 </script>
 
 <style scoped>

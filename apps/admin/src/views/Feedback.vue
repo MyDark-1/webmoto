@@ -37,61 +37,42 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
+import { useAdminUserStore } from '../stores/user'
+import { useAdminDataStore } from '../stores/data'
+import { notifyError, notifySuccess } from '../utils/notify'
 
-export default {
-  name: 'FeedbackAdmin',
-  setup() {
-    const store = useStore()
+const userStore = useAdminUserStore()
+const dataStore = useAdminDataStore()
+const feedback = computed(() => dataStore.feedback)
 
-    const feedback = computed(() => store.state.feedback)
+const formatDate = (d) => new Date(d).toLocaleDateString('ru-RU')
 
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString('ru-RU')
-    }
+const getStatusText = (status) => {
+  const statuses = { new: 'Новое', read: 'Прочитано', replied: 'Отвечено' }
+  return statuses[status] || status
+}
 
-    const getStatusText = (status) => {
-      const statuses = {
-        new: 'Новое',
-        read: 'Прочитано',
-        replied: 'Отвечено'
-      }
-      return statuses[status] || status
-    }
-
-    const updateStatus = async (id, status) => {
-      const response = await fetch(`/api/feedback/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.state.token}`
-        },
-        body: JSON.stringify({ status })
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert('Статус обновлен!')
-        store.dispatch('fetchFeedback')
-      } else {
-        alert('Ошибка: ' + data.error)
-      }
-    }
-
-    onMounted(() => {
-      store.dispatch('fetchFeedback')
-    })
-
-    return {
-      feedback,
-      formatDate,
-      getStatusText,
-      updateStatus
-    }
+const updateStatus = async (id, status) => {
+  const response = await fetch(`/api/feedback/${id}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userStore.token}`
+    },
+    body: JSON.stringify({ status })
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess('Статус обновлён')
+    dataStore.fetchFeedback()
+  } else {
+    notifyError(data.error || 'Ошибка')
   }
 }
+
+onMounted(() => dataStore.fetchFeedback())
 </script>
 
 <style scoped>

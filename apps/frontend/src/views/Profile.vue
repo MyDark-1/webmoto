@@ -1,274 +1,233 @@
 <template>
-  <div class="profile">
-    <h1>Профиль</h1>
-    
-    <div v-if="user" class="profile-content">
-      <div class="profile-info">
-        <h2>Информация о пользователе</h2>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-        <p><strong>Роль:</strong> {{ user.role }}</p>
+  <section class="profile container">
+    <header class="profile__header">
+      <div>
+        <h1>Личный кабинет</h1>
+        <p v-if="user.user">{{ user.user.email }}</p>
       </div>
+      <button class="btn btn--ghost" @click="onLogout">Выйти</button>
+    </header>
 
-      <div class="orders">
+    <div class="profile__grid">
+      <section class="profile__card">
         <h2>Мои заказы</h2>
-        <div v-if="orders.length === 0" class="no-orders">
-          <p>У вас пока нет заказов</p>
+        <div v-if="loading" class="profile__loading">Загрузка...</div>
+        <div v-else-if="orders.length === 0" class="profile__empty">
+          <p>У вас пока нет заказов.</p>
+          <router-link to="/products" class="btn btn--primary">В каталог</router-link>
         </div>
-        <div v-else class="orders-list">
-          <div v-for="order in orders" :key="order.id" class="order-card">
-            <div class="order-header">
-              <span class="order-id">Заказ #{{ order.id }}</span>
-              <span class="order-status" :class="order.status">{{ getStatusText(order.status) }}</span>
+        <ul v-else class="orders">
+          <li v-for="order in orders" :key="order.id" class="order">
+            <div class="order__head">
+              <span class="order__id">Заказ #{{ order.id }}</span>
+              <span class="order__status" :class="`order__status--${order.status}`">
+                {{ statusText(order.status) }}
+              </span>
             </div>
-            <div class="order-items">
-              <div v-for="item in order.items" :key="item.id" class="order-item">
-                <span>{{ item.product_title }} x {{ item.quantity }}</span>
+            <ul class="order__items">
+              <li v-for="item in order.items" :key="item.id">
+                {{ item.product_title }} × {{ item.quantity }}
                 <span>{{ formatPrice(item.price * item.quantity) }} ₽</span>
-              </div>
+              </li>
+            </ul>
+            <div class="order__foot">
+              <span class="order__date">{{ formatDate(order.created_at) }}</span>
+              <strong>{{ formatPrice(order.total) }} ₽</strong>
             </div>
-            <div class="order-total">
-              <strong>Итого: {{ formatPrice(order.total) }} ₽</strong>
-            </div>
-            <div class="order-date">
-              {{ formatDate(order.created_at) }}
-            </div>
-          </div>
-        </div>
-      </div>
+          </li>
+        </ul>
+      </section>
 
-      <div class="feedback-section">
-        <h2>Обратная связь</h2>
-        <form @submit.prevent="sendFeedback" class="feedback-form">
-          <textarea v-model="feedbackMessage" placeholder="Ваше сообщение" required></textarea>
-          <button type="submit" class="btn">Отправить</button>
+      <section class="profile__card">
+        <h2>Связаться с нами</h2>
+        <form class="feedback" @submit.prevent="sendFeedback">
+          <textarea
+            v-model="feedbackMessage"
+            class="input"
+            rows="5"
+            placeholder="Ваш вопрос или пожелание..."
+            required
+          ></textarea>
+          <button type="submit" class="btn btn--primary">Отправить</button>
         </form>
-      </div>
+      </section>
     </div>
-    
-    <div v-else>
-      <p>Пожалуйста, войдите в систему</p>
-      <router-link to="/login" class="btn">Войти</router-link>
-    </div>
-  </div>
+  </section>
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user'
+import { apiFetch } from '../utils/api'
+import { formatDate, formatPrice } from '../utils/format'
+import { notifyError, notifySuccess } from '../utils/notify'
 
-export default {
-  name: 'Profile',
-  setup() {
-    const store = useStore()
-    const orders = ref([])
-    const feedbackMessage = ref('')
+const user = useUserStore()
+const router = useRouter()
+const orders = ref<any[]>([])
+const loading = ref(true)
+const feedbackMessage = ref('')
 
-    const user = computed(() => store.state.user)
+const statusText = (s: string) =>
+  ({
+    pending: 'Ожидает',
+    processing: 'В обработке',
+    completed: 'Завершён',
+    cancelled: 'Отменён'
+  } as Record<string, string>)[s] || s
 
-    const formatPrice = (price) => {
-      return new Intl.NumberFormat('ru-RU').format(price)
-    }
-
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString('ru-RU')
-    }
-
-    const getStatusText = (status) => {
-      const statuses = {
-        pending: 'Ожидает',
-        processing: 'В обработке',
-        completed: 'Завершен',
-        cancelled: 'Отменен'
-      }
-      return statuses[status] || status
-    }
-
-    const sendFeedback = async () => {
-      if (!feedbackMessage.value) return
-      
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.state.token}`
-        },
-        body: JSON.stringify({ message: feedbackMessage.value })
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert('Сообщение отправлено!')
-        feedbackMessage.value = ''
-      } else {
-        alert('Ошибка при отправке сообщения')
-      }
-    }
-
-    onMounted(async () => {
-      if (store.state.token) {
-        const response = await fetch('/api/orders', {
-          headers: {
-            'Authorization': `Bearer ${store.state.token}`
-          }
-        })
-        const data = await response.json()
-        if (data.success) {
-          orders.value = data.data
-        }
-      }
-    })
-
-    return {
-      user,
-      orders,
-      feedbackMessage,
-      formatPrice,
-      formatDate,
-      getStatusText,
-      sendFeedback
-    }
+async function sendFeedback() {
+  if (!feedbackMessage.value) return
+  const data = await apiFetch('/api/feedback', {
+    method: 'POST',
+    json: { message: feedbackMessage.value }
+  })
+  if (data.success) {
+    notifySuccess('Сообщение отправлено')
+    feedbackMessage.value = ''
+  } else {
+    notifyError(data.error || 'Не удалось отправить')
   }
 }
+
+function onLogout() {
+  user.logout()
+  notifySuccess('Вы вышли из аккаунта')
+  router.push('/')
+}
+
+onMounted(async () => {
+  const data = await apiFetch<any[]>('/api/orders')
+  if (data.success && data.data) orders.value = data.data
+  loading.value = false
+})
 </script>
 
 <style scoped>
 .profile {
-  padding: 20px;
+  padding: 48px 24px 80px;
 }
-
-.profile h1 {
-  color: #ff6600;
-  margin-bottom: 20px;
+.profile__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
 }
-
-.profile-content {
+.profile__header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.profile__header p {
+  color: var(--color-muted);
+  margin-top: 4px;
+}
+.profile__grid {
   display: grid;
-  gap: 30px;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  align-items: start;
 }
-
-.profile-info {
-  background: #1a1a1a;
-  padding: 20px;
-  border-radius: 8px;
+.profile__card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
 }
-
-.profile-info h2 {
-  color: #ff6600;
-  margin-bottom: 15px;
+.profile__card h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
 }
-
+.profile__loading,
+.profile__empty {
+  color: var(--color-muted);
+  text-align: center;
+  padding: 32px 16px;
+}
+.profile__empty p {
+  margin-bottom: 16px;
+}
 .orders {
-  background: #1a1a1a;
-  padding: 20px;
-  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  list-style: none;
 }
-
-.orders h2 {
-  color: #ff6600;
-  margin-bottom: 15px;
+.order {
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: 16px;
 }
-
-.order-card {
-  background: #0a0a0a;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-.order-header {
+.order__head {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-
-.order-id {
-  font-weight: bold;
-  color: #ff6600;
+.order__id {
+  font-weight: 600;
 }
-
-.order-status {
-  padding: 4px 8px;
-  border-radius: 4px;
+.order__status {
+  padding: 4px 10px;
+  border-radius: 999px;
   font-size: 12px;
+  font-weight: 600;
 }
-
-.order-status.pending {
-  background: #ffa500;
-  color: #000;
+.order__status--pending {
+  background: rgba(255, 174, 0, 0.15);
+  color: var(--color-accent-2);
 }
-
-.order-status.processing {
-  background: #007bff;
-  color: #fff;
+.order__status--processing {
+  background: rgba(31, 142, 255, 0.15);
+  color: #5fb1ff;
 }
-
-.order-status.completed {
-  background: #28a745;
-  color: #fff;
+.order__status--completed {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
 }
-
-.order-status.cancelled {
-  background: #dc3545;
-  color: #fff;
+.order__status--cancelled {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
 }
-
-.order-item {
+.order__items {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.order__items li {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 5px;
-  color: #888;
 }
-
-.order-total {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #333;
-  color: #ff6600;
+.order__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
 }
-
-.order-date {
-  color: #888;
-  font-size: 14px;
-  margin-top: 10px;
+.order__date {
+  color: var(--color-muted);
+  font-size: 13px;
 }
-
-.feedback-section {
-  background: #1a1a1a;
-  padding: 20px;
-  border-radius: 8px;
+.order__foot strong {
+  color: var(--color-accent);
 }
-
-.feedback-section h2 {
-  color: #ff6600;
-  margin-bottom: 15px;
+.feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-
-.feedback-form textarea {
-  width: 100%;
-  height: 100px;
-  padding: 10px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  background: #0a0a0a;
-  color: #fff;
-  margin-bottom: 10px;
+.feedback textarea {
   resize: vertical;
 }
 
-.btn {
-  background: #ff6600;
-  color: #fff;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.no-orders {
-  color: #888;
-  text-align: center;
-  padding: 20px;
+@media (max-width: 900px) {
+  .profile__grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

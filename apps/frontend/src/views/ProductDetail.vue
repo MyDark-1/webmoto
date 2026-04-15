@@ -1,106 +1,145 @@
 <template>
-  <div class="product-detail">
-    <div v-if="product" class="product">
-      <div class="product-image">
-        <img :src="product.image" :alt="product.title">
+  <section class="product container">
+    <div v-if="loading" class="product__loading">Загрузка...</div>
+    <div v-else-if="!product" class="product__empty">
+      <p>Товар не найден.</p>
+      <router-link to="/products" class="btn btn--primary">В каталог</router-link>
+    </div>
+    <div v-else class="product__grid">
+      <div class="product__media">
+        <img v-if="product.image" :src="product.image" :alt="product.title" />
+        <div v-else class="product__placeholder">RADAR EXTREME</div>
       </div>
-      <div class="product-info">
+      <div class="product__info">
+        <span v-if="product.category_name" class="tag">{{ product.category_name }}</span>
         <h1>{{ product.title }}</h1>
-        <p class="category">{{ product.category_name }}</p>
-        <p class="price">{{ formatPrice(product.price) }} ₽</p>
-        <p class="description">{{ product.description }}</p>
-        <button @click="addToCart" class="btn">Добавить в корзину</button>
+        <div class="product__price">{{ formatPrice(product.price) }} ₽</div>
+        <p class="product__description">{{ product.description }}</p>
+        <div class="product__actions">
+          <button class="btn btn--primary" @click="addToCart">В корзину</button>
+          <router-link to="/cart" class="btn btn--ghost">Перейти в корзину</router-link>
+        </div>
+        <ul class="product__features">
+          <li><strong>Гарантия</strong>оригинальная, от производителя</li>
+          <li><strong>Доставка</strong>по РФ от 1 до 7 дней</li>
+          <li><strong>Оплата</strong>наличные, карта, рассрочка</li>
+        </ul>
       </div>
     </div>
-    <div v-else>
-      <p>Загрузка...</p>
-    </div>
-  </div>
+  </section>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue'
-import { useStore } from 'vuex'
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useCartStore } from '../stores/cart'
+import { apiFetch } from '../utils/api'
+import { formatPrice } from '../utils/format'
+import { notifySuccess } from '../utils/notify'
 
-export default {
-  name: 'ProductDetail',
-  setup() {
-    const store = useStore()
-    const route = useRoute()
-    const product = ref(null)
+const cart = useCartStore()
+const route = useRoute()
+const product = ref<any>(null)
+const loading = ref(true)
 
-    const formatPrice = (price) => {
-      return new Intl.NumberFormat('ru-RU').format(price)
-    }
-
-    const addToCart = () => {
-      store.commit('addToCart', product.value)
-      alert('Товар добавлен в корзину!')
-    }
-
-    onMounted(async () => {
-      const response = await fetch(`/api/products/${route.params.id}`)
-      const data = await response.json()
-      if (data.success) {
-        product.value = data.data
-      }
-    })
-
-    return {
-      product,
-      formatPrice,
-      addToCart
-    }
-  }
+function addToCart() {
+  if (!product.value) return
+  cart.add(product.value)
+  notifySuccess('Товар добавлен в корзину')
 }
+
+onMounted(async () => {
+  const data = await apiFetch<any>(`/api/products/${route.params.id}`)
+  if (data.success) product.value = data.data
+  loading.value = false
+})
 </script>
 
 <style scoped>
-.product-detail {
-  padding: 20px;
-}
-
 .product {
+  padding: 48px 24px 80px;
+}
+.product__loading,
+.product__empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--color-muted);
+}
+.product__empty p {
+  margin-bottom: 16px;
+}
+.product__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.1fr 1fr;
   gap: 40px;
+  align-items: start;
 }
-
-.product-image img {
+.product__media {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.product__media img {
   width: 100%;
-  border-radius: 8px;
+  height: 100%;
+  object-fit: cover;
 }
-
-.product-info h1 {
-  color: #ff6600;
-  margin-bottom: 10px;
+.product__placeholder {
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: var(--color-border);
 }
-
-.category {
-  color: #888;
-  margin-bottom: 10px;
+.product__info h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 12px 0 16px;
 }
-
-.price {
-  font-size: 24px;
-  font-weight: bold;
-  color: #ff6600;
+.product__price {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-accent);
   margin-bottom: 20px;
 }
-
-.description {
-  margin-bottom: 20px;
-  line-height: 1.6;
+.product__description {
+  color: var(--color-muted);
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+.product__actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.product__features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+}
+.product__features li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.product__features strong {
+  color: var(--color-text);
+  font-weight: 600;
 }
 
-.btn {
-  background: #ff6600;
-  color: #fff;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
+@media (max-width: 900px) {
+  .product__grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -9,12 +9,15 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:all": "concurrently -n backend,frontend,admin -c yellow,cyan,magenta \"cd apps/backend && C:/xampp/php/php.exe -S localhost:8000 -t public\" \"npm run dev --prefix apps/frontend\" \"npm run dev --prefix apps/admin\"",
+    "start": "npm run dev:all",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,vue,md}\""
   },
   "devDependencies": {
-    "turbo": "^1.11.0",
-    "prettier": "^3.2.0"
+    "concurrently": "^9.2.1",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3"
   },
   "packageManager": "npm@9.0.0"
 }

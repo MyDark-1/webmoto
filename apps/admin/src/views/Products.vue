@@ -85,131 +85,105 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
+import { useAdminUserStore } from '../stores/user'
+import { useAdminDataStore } from '../stores/data'
+import { notifyError, notifySuccess } from '../utils/notify'
 
-export default {
-  name: 'ProductsAdmin',
-  setup() {
-    const store = useStore()
-    const showAddForm = ref(false)
-    const editingProduct = ref(null)
-    const categories = ref([])
+const userStore = useAdminUserStore()
+const dataStore = useAdminDataStore()
+const showAddForm = ref(false)
+const editingProduct = ref(null)
+const categories = ref([])
 
-    const form = ref({
-      title: '',
-      category_id: '',
-      description: '',
-      price: '',
-      image: '',
-      status: 'active'
-    })
+const form = ref({
+  title: '',
+  category_id: '',
+  description: '',
+  price: '',
+  image: '',
+  status: 'active'
+})
 
-    const products = computed(() => store.state.products)
+const products = computed(() => dataStore.products)
 
-    const formatPrice = (price) => {
-      return new Intl.NumberFormat('ru-RU').format(price)
-    }
+const formatPrice = (price) => new Intl.NumberFormat('ru-RU').format(price)
 
-    const loadCategories = async () => {
-      const response = await fetch('/api/categories')
-      const data = await response.json()
-      if (data.success) {
-        categories.value = data.data
-      }
-    }
+const loadCategories = async () => {
+  const response = await fetch('/api/categories')
+  const data = await response.json()
+  if (data.success) categories.value = data.data
+}
 
-    const saveProduct = async () => {
-      const url = editingProduct.value 
-        ? `/api/products/${editingProduct.value.id}`
-        : '/api/products'
-      
-      const method = editingProduct.value ? 'PUT' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.state.token}`
-        },
-        body: JSON.stringify(form.value)
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert(editingProduct.value ? 'Товар обновлен!' : 'Товар добавлен!')
-        cancelEdit()
-        store.dispatch('fetchProducts')
-      } else {
-        alert('Ошибка: ' + data.error)
-      }
-    }
-
-    const editProduct = (product) => {
-      editingProduct.value = product
-      form.value = {
-        title: product.title,
-        category_id: product.category_id,
-        description: product.description,
-        price: product.price,
-        image: product.image,
-        status: product.status
-      }
-      showAddForm.value = true
-    }
-
-    const cancelEdit = () => {
-      showAddForm.value = false
-      editingProduct.value = null
-      form.value = {
-        title: '',
-        category_id: '',
-        description: '',
-        price: '',
-        image: '',
-        status: 'active'
-      }
-    }
-
-    const deleteProduct = async (id) => {
-      if (!confirm('Удалить товар?')) return
-      
-      const response = await fetch(`/api/products/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${store.state.token}`
-        }
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert('Товар удален!')
-        store.dispatch('fetchProducts')
-      } else {
-        alert('Ошибка: ' + data.error)
-      }
-    }
-
-    onMounted(() => {
-      store.dispatch('fetchProducts')
-      loadCategories()
-    })
-
-    return {
-      products,
-      categories,
-      showAddForm,
-      editingProduct,
-      form,
-      formatPrice,
-      saveProduct,
-      editProduct,
-      cancelEdit,
-      deleteProduct
-    }
+const saveProduct = async () => {
+  const url = editingProduct.value
+    ? `/api/products/${editingProduct.value.id}`
+    : '/api/products'
+  const method = editingProduct.value ? 'PUT' : 'POST'
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userStore.token}`
+    },
+    body: JSON.stringify(form.value)
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess(editingProduct.value ? 'Товар обновлён' : 'Товар добавлен')
+    cancelEdit()
+    dataStore.fetchProducts()
+  } else {
+    notifyError(data.error || 'Ошибка')
   }
 }
+
+const editProduct = (product) => {
+  editingProduct.value = product
+  form.value = {
+    title: product.title,
+    category_id: product.category_id,
+    description: product.description,
+    price: product.price,
+    image: product.image,
+    status: product.status
+  }
+  showAddForm.value = true
+}
+
+const cancelEdit = () => {
+  showAddForm.value = false
+  editingProduct.value = null
+  form.value = {
+    title: '',
+    category_id: '',
+    description: '',
+    price: '',
+    image: '',
+    status: 'active'
+  }
+}
+
+const deleteProduct = async (id) => {
+  if (!confirm('Удалить товар?')) return
+  const response = await fetch(`/api/products/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${userStore.token}` }
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess('Товар удалён')
+    dataStore.fetchProducts()
+  } else {
+    notifyError(data.error || 'Ошибка')
+  }
+}
+
+onMounted(() => {
+  dataStore.fetchProducts()
+  loadCategories()
+})
 </script>
 
 <style scoped>

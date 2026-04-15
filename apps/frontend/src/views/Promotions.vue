@@ -1,92 +1,118 @@
 <template>
-  <div class="promotions">
-    <h1>Акции</h1>
-    
-    <div class="promotions-grid">
-      <div v-for="promotion in promotions" :key="promotion.id" class="promotion-card">
-        <img :src="promotion.image" :alt="promotion.title">
-        <div class="promotion-content">
-          <h3>{{ promotion.title }}</h3>
-          <p>{{ promotion.content }}</p>
-          <div class="discount">Скидка {{ promotion.discount }}%</div>
-        </div>
-      </div>
+  <section class="promotions container">
+    <header class="promotions__header">
+      <span class="tag">Акции</span>
+      <h1>Действующие акции и скидки</h1>
+      <p>Только живые предложения. Условия — в карточке акции.</p>
+    </header>
+
+    <div v-if="loading" class="promotions__loading">Загрузка...</div>
+    <div v-else-if="promotions.length === 0" class="promotions__empty">
+      Сейчас нет активных акций.
     </div>
-  </div>
+    <div v-else class="promotions__grid">
+      <article v-for="promo in promotions" :key="promo.id" class="promo-card">
+        <div class="promo-card__media">
+          <img v-if="promo.image" :src="promo.image" :alt="promo.title" />
+          <span v-if="promo.discount" class="promo-card__discount">
+            −{{ promo.discount }}%
+          </span>
+        </div>
+        <div class="promo-card__body">
+          <h3>{{ promo.title }}</h3>
+          <p>{{ promo.content }}</p>
+        </div>
+      </article>
+    </div>
+  </section>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { apiFetch } from '../utils/api'
 
-export default {
-  name: 'Promotions',
-  setup() {
-    const promotions = ref([])
+const promotions = ref<any[]>([])
+const loading = ref(true)
 
-    onMounted(async () => {
-      const response = await fetch('/api/promotions')
-      const data = await response.json()
-      if (data.success) {
-        promotions.value = data.data
-      }
-    })
-
-    return {
-      promotions
-    }
-  }
-}
+onMounted(async () => {
+  const data = await apiFetch<any[]>('/api/promotions')
+  if (data.success && data.data) promotions.value = data.data
+  loading.value = false
+})
 </script>
 
 <style scoped>
 .promotions {
-  padding: 20px;
+  padding: 48px 24px 80px;
 }
-
-.promotions h1 {
-  color: #ff6600;
-  margin-bottom: 20px;
+.promotions__header {
+  margin-bottom: 32px;
+  max-width: 720px;
 }
-
-.promotions-grid {
+.promotions__header h1 {
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 700;
+  margin: 12px 0 8px;
+  letter-spacing: -0.02em;
+}
+.promotions__header p {
+  color: var(--color-muted);
+}
+.promotions__loading,
+.promotions__empty {
+  padding: 60px 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+.promotions__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
 }
-
-.promotion-card {
-  background: #1a1a1a;
-  border-radius: 8px;
+.promo-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
 }
-
-.promotion-card img {
+.promo-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-accent);
+}
+.promo-card__media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
+}
+.promo-card__media img {
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
 }
-
-.promotion-content {
-  padding: 20px;
+.promo-card__discount {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: #0e0e10;
+  color: var(--color-accent);
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
 }
-
-.promotion-content h3 {
-  margin-bottom: 10px;
-  color: #fff;
+.promo-card__body {
+  padding: 18px 20px 22px;
 }
-
-.promotion-content p {
-  color: #888;
-  margin-bottom: 10px;
+.promo-card__body h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.promo-card__body p {
+  color: var(--color-muted);
+  font-size: 14px;
   line-height: 1.5;
-}
-
-.discount {
-  background: #ff6600;
-  color: #fff;
-  padding: 5px 10px;
-  border-radius: 4px;
-  display: inline-block;
-  font-weight: bold;
 }
 </style>

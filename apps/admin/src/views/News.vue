@@ -60,111 +60,74 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
+import { useAdminUserStore } from '../stores/user'
+import { useAdminDataStore } from '../stores/data'
+import { notifyError, notifySuccess } from '../utils/notify'
 
-export default {
-  name: 'NewsAdmin',
-  setup() {
-    const store = useStore()
-    const showAddForm = ref(false)
-    const editingNews = ref(null)
+const userStore = useAdminUserStore()
+const dataStore = useAdminDataStore()
+const showAddForm = ref(false)
+const editingNews = ref(null)
 
-    const form = ref({
-      title: '',
-      content: '',
-      image: ''
-    })
+const form = ref({ title: '', content: '', image: '' })
 
-    const news = computed(() => store.state.news)
+const news = computed(() => dataStore.news)
 
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString('ru-RU')
-    }
+const formatDate = (d) => new Date(d).toLocaleDateString('ru-RU')
 
-    const saveNews = async () => {
-      const url = editingNews.value 
-        ? `/api/news/${editingNews.value.id}`
-        : '/api/news'
-      
-      const method = editingNews.value ? 'PUT' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.state.token}`
-        },
-        body: JSON.stringify(form.value)
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert(editingNews.value ? 'Новость обновлена!' : 'Новость добавлена!')
-        cancelEdit()
-        store.dispatch('fetchNews')
-      } else {
-        alert('Ошибка: ' + data.error)
-      }
-    }
-
-    const editNews = (newsItem) => {
-      editingNews.value = newsItem
-      form.value = {
-        title: newsItem.title,
-        content: newsItem.content,
-        image: newsItem.image
-      }
-      showAddForm.value = true
-    }
-
-    const cancelEdit = () => {
-      showAddForm.value = false
-      editingNews.value = null
-      form.value = {
-        title: '',
-        content: '',
-        image: ''
-      }
-    }
-
-    const deleteNews = async (id) => {
-      if (!confirm('Удалить новость?')) return
-      
-      const response = await fetch(`/api/news/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${store.state.token}`
-        }
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert('Новость удалена!')
-        store.dispatch('fetchNews')
-      } else {
-        alert('Ошибка: ' + data.error)
-      }
-    }
-
-    onMounted(() => {
-      store.dispatch('fetchNews')
-    })
-
-    return {
-      news,
-      showAddForm,
-      editingNews,
-      form,
-      formatDate,
-      saveNews,
-      editNews,
-      cancelEdit,
-      deleteNews
-    }
+const saveNews = async () => {
+  const url = editingNews.value
+    ? `/api/news/${editingNews.value.id}`
+    : '/api/news'
+  const method = editingNews.value ? 'PUT' : 'POST'
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userStore.token}`
+    },
+    body: JSON.stringify(form.value)
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess(editingNews.value ? 'Новость обновлена' : 'Новость добавлена')
+    cancelEdit()
+    dataStore.fetchNews()
+  } else {
+    notifyError(data.error || 'Ошибка')
   }
 }
+
+const editNews = (item) => {
+  editingNews.value = item
+  form.value = { title: item.title, content: item.content, image: item.image }
+  showAddForm.value = true
+}
+
+const cancelEdit = () => {
+  showAddForm.value = false
+  editingNews.value = null
+  form.value = { title: '', content: '', image: '' }
+}
+
+const deleteNews = async (id) => {
+  if (!confirm('Удалить новость?')) return
+  const response = await fetch(`/api/news/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${userStore.token}` }
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess('Новость удалена')
+    dataStore.fetchNews()
+  } else {
+    notifyError(data.error || 'Ошибка')
+  }
+}
+
+onMounted(() => dataStore.fetchNews())
 </script>
 
 <style scoped>

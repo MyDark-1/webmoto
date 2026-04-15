@@ -1,239 +1,236 @@
 <template>
-  <div class="checkout">
+  <section class="checkout container">
     <h1>Оформление заказа</h1>
-    
-    <div v-if="cart.length === 0" class="empty-cart">
-      <p>Корзина пуста</p>
-      <router-link to="/products" class="btn">Перейти в каталог</router-link>
+
+    <div v-if="cart.items.length === 0" class="checkout__empty">
+      <p>Корзина пуста — добавьте товары перед оформлением.</p>
+      <router-link to="/products" class="btn btn--primary">В каталог</router-link>
     </div>
 
-    <div v-else class="checkout-content">
-      <div class="checkout-form">
-        <h2>Данные для заказа</h2>
-        <form @submit.prevent="submitOrder">
-          <div class="form-group">
-            <label>Имя</label>
-            <input type="text" v-model="form.name" required>
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" v-model="form.email" required>
-          </div>
-          <div class="form-group">
-            <label>Телефон</label>
-            <input type="tel" v-model="form.phone" required>
-          </div>
-          <div class="form-group">
-            <label>Адрес доставки</label>
-            <textarea v-model="form.address" required></textarea>
-          </div>
-          <div class="form-group">
-            <label>Промокод</label>
-            <input type="text" v-model="promoCode">
-            <button type="button" @click="applyPromoCode">Применить</button>
-          </div>
-          <button type="submit" class="btn">Оформить заказ</button>
-        </form>
-      </div>
+    <div v-else class="checkout__grid">
+      <form class="checkout__form" @submit.prevent="submitOrder">
+        <fieldset>
+          <legend>Контактные данные</legend>
+          <label>
+            Имя
+            <input v-model="form.name" type="text" required class="input" />
+          </label>
+          <label>
+            Email
+            <input v-model="form.email" type="email" required class="input" />
+          </label>
+          <label>
+            Телефон
+            <input v-model="form.phone" type="tel" required class="input" />
+          </label>
+        </fieldset>
 
-      <div class="order-summary">
+        <fieldset>
+          <legend>Доставка</legend>
+          <label>
+            Адрес
+            <textarea v-model="form.address" required class="input" rows="3"></textarea>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Промокод</legend>
+          <div class="checkout__promo">
+            <input v-model="promoCode" type="text" class="input" placeholder="Введите код" />
+            <button type="button" class="btn btn--ghost" @click="applyPromoCode">
+              Применить
+            </button>
+          </div>
+          <p v-if="discount > 0" class="checkout__promo-applied">
+            Промокод применён: −{{ discount }}%
+          </p>
+        </fieldset>
+
+        <button type="submit" class="btn btn--primary checkout__submit">
+          Подтвердить заказ
+        </button>
+      </form>
+
+      <aside class="checkout__summary">
         <h2>Ваш заказ</h2>
-        <div class="order-items">
-          <div v-for="item in cart" :key="item.product.id" class="order-item">
-            <span>{{ item.product.title }} x {{ item.quantity }}</span>
+        <div class="checkout__items">
+          <div v-for="item in cart.items" :key="item.product.id" class="checkout__item">
+            <span>{{ item.product.title }} × {{ item.quantity }}</span>
             <span>{{ formatPrice(item.product.price * item.quantity) }} ₽</span>
           </div>
         </div>
-        <div class="order-total">
-          <strong>Итого: {{ formatPrice(total) }} ₽</strong>
+        <div class="checkout__total">
+          <span>К оплате</span>
+          <strong>{{ formatPrice(total) }} ₽</strong>
         </div>
-      </div>
+      </aside>
     </div>
-  </div>
+  </section>
 </template>
 
-<script>
-import { ref, computed } from 'vue'
-import { useStore } from 'vuex'
+<script setup lang="ts">
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useCartStore } from '../stores/cart'
+import { apiFetch } from '../utils/api'
+import { formatPrice } from '../utils/format'
+import { notifyError, notifySuccess } from '../utils/notify'
 
-export default {
-  name: 'Checkout',
-  setup() {
-    const store = useStore()
-    const router = useRouter()
-    const promoCode = ref('')
-    const discount = ref(0)
+const cart = useCartStore()
+const router = useRouter()
 
-    const form = ref({
-      name: '',
-      email: '',
-      phone: '',
-      address: ''
-    })
+const form = ref({ name: '', email: '', phone: '', address: '' })
+const promoCode = ref('')
+const discount = ref(0)
 
-    const cart = computed(() => store.state.cart)
-    const total = computed(() => {
-      const subtotal = cart.value.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
-      return subtotal * (1 - discount.value / 100)
-    })
+const total = computed(() => cart.total * (1 - discount.value / 100))
 
-    const formatPrice = (price) => {
-      return new Intl.NumberFormat('ru-RU').format(price)
+async function applyPromoCode() {
+  if (!promoCode.value) return
+  const data = await apiFetch<{ discount: number }>('/api/promo-codes/validate', {
+    method: 'POST',
+    json: { code: promoCode.value }
+  })
+  if (data.success && data.data) {
+    discount.value = data.data.discount
+    notifySuccess(`Промокод применён: скидка ${data.data.discount}%`)
+  } else {
+    notifyError('Недействительный промокод')
+  }
+}
+
+async function submitOrder() {
+  const data = await apiFetch('/api/orders', {
+    method: 'POST',
+    json: {
+      items: cart.items.map((i) => ({
+        product_id: i.product.id,
+        quantity: i.quantity
+      }))
     }
-
-    const applyPromoCode = async () => {
-      if (!promoCode.value) return
-      
-      const response = await fetch('/api/promo-codes/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode.value })
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        discount.value = data.data.discount
-        alert(`Промокод применен! Скидка ${data.data.discount}%`)
-      } else {
-        alert('Недействительный промокод')
-      }
-    }
-
-    const submitOrder = async () => {
-      const orderData = {
-        items: cart.value.map(item => ({
-          product_id: item.product.id,
-          quantity: item.quantity
-        }))
-      }
-
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.state.token}`
-        },
-        body: JSON.stringify(orderData)
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        store.commit('clearCart')
-        alert('Заказ успешно оформлен!')
-        router.push('/profile')
-      } else {
-        alert('Ошибка при оформлении заказа')
-      }
-    }
-
-    return {
-      form,
-      cart,
-      total,
-      promoCode,
-      discount,
-      formatPrice,
-      applyPromoCode,
-      submitOrder
-    }
+  })
+  if (data.success) {
+    cart.clear()
+    notifySuccess('Заказ успешно оформлен!')
+    router.push('/profile')
+  } else {
+    notifyError(data.error || 'Ошибка при оформлении заказа')
   }
 }
 </script>
 
 <style scoped>
 .checkout {
-  padding: 20px;
+  padding: 48px 24px 80px;
 }
-
 .checkout h1 {
-  color: #ff6600;
-  margin-bottom: 20px;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 28px;
+  letter-spacing: -0.02em;
 }
-
-.empty-cart {
+.checkout__empty {
   text-align: center;
-  padding: 40px;
+  padding: 60px 20px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
 }
-
-.btn {
-  display: inline-block;
-  background: #ff6600;
-  color: #fff;
-  padding: 12px 24px;
-  border-radius: 4px;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
+.checkout__empty p {
+  color: var(--color-muted);
+  margin-bottom: 16px;
 }
-
-.checkout-content {
+.checkout__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
+  grid-template-columns: 2fr 1fr;
+  gap: 32px;
+  align-items: start;
 }
-
-.checkout-form {
-  background: #1a1a1a;
+.checkout__form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 20px;
-  border-radius: 8px;
+  background: var(--color-surface);
 }
-
-.checkout-form h2 {
-  color: #ff6600;
-  margin-bottom: 20px;
+legend {
+  padding: 0 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
-
-.form-group {
-  margin-bottom: 15px;
+fieldset label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-muted);
+  margin-bottom: 12px;
 }
-
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  color: #888;
+fieldset label:last-child {
+  margin-bottom: 0;
 }
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #333;
-  border-radius: 4px;
-  background: #0a0a0a;
-  color: #fff;
+.checkout__promo {
+  display: flex;
+  gap: 10px;
 }
-
-.form-group textarea {
-  height: 100px;
-  resize: vertical;
+.checkout__promo .input {
+  flex: 1;
 }
-
-.order-summary {
-  background: #1a1a1a;
-  padding: 20px;
-  border-radius: 8px;
-  height: fit-content;
+.checkout__promo-applied {
+  margin-top: 10px;
+  color: #2ecc71;
+  font-size: 13px;
 }
-
-.order-summary h2 {
-  color: #ff6600;
-  margin-bottom: 20px;
+.checkout__submit {
+  align-self: stretch;
+  padding: 16px;
+  font-size: 15px;
 }
-
-.order-item {
+.checkout__summary {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: sticky;
+  top: 100px;
+}
+.checkout__summary h2 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+.checkout__items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.checkout__item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #333;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.checkout__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 16px;
+}
+.checkout__total strong {
+  font-size: 22px;
+  color: var(--color-accent);
 }
 
-.order-total {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 2px solid #ff6600;
-  color: #ff6600;
-  font-size: 18px;
+@media (max-width: 900px) {
+  .checkout__grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

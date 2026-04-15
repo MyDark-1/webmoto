@@ -38,67 +38,48 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
+import { useAdminUserStore } from '../stores/user'
+import { useAdminDataStore } from '../stores/data'
+import { notifyError, notifySuccess } from '../utils/notify'
 
-export default {
-  name: 'OrdersAdmin',
-  setup() {
-    const store = useStore()
+const userStore = useAdminUserStore()
+const dataStore = useAdminDataStore()
+const orders = computed(() => dataStore.orders)
 
-    const orders = computed(() => store.state.orders)
+const formatPrice = (price) => new Intl.NumberFormat('ru-RU').format(price)
+const formatDate = (d) => new Date(d).toLocaleDateString('ru-RU')
 
-    const formatPrice = (price) => {
-      return new Intl.NumberFormat('ru-RU').format(price)
-    }
+const getStatusText = (status) => {
+  const statuses = {
+    pending: 'Ожидает',
+    processing: 'В обработке',
+    completed: 'Завершен',
+    cancelled: 'Отменен'
+  }
+  return statuses[status] || status
+}
 
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString('ru-RU')
-    }
-
-    const getStatusText = (status) => {
-      const statuses = {
-        pending: 'Ожидает',
-        processing: 'В обработке',
-        completed: 'Завершен',
-        cancelled: 'Отменен'
-      }
-      return statuses[status] || status
-    }
-
-    const updateStatus = async (orderId, status) => {
-      const response = await fetch(`/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.state.token}`
-        },
-        body: JSON.stringify({ status })
-      })
-      
-      const data = await response.json()
-      if (data.success) {
-        alert('Статус обновлен!')
-        store.dispatch('fetchOrders')
-      } else {
-        alert('Ошибка: ' + data.error)
-      }
-    }
-
-    onMounted(() => {
-      store.dispatch('fetchOrders')
-    })
-
-    return {
-      orders,
-      formatPrice,
-      formatDate,
-      getStatusText,
-      updateStatus
-    }
+const updateStatus = async (orderId, status) => {
+  const response = await fetch(`/api/orders/${orderId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userStore.token}`
+    },
+    body: JSON.stringify({ status })
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess('Статус обновлён')
+    dataStore.fetchOrders()
+  } else {
+    notifyError(data.error || 'Ошибка')
   }
 }
+
+onMounted(() => dataStore.fetchOrders())
 </script>
 
 <style scoped>

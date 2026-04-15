@@ -1,216 +1,345 @@
-# Radar Extreme - Интернет-магазин мотосалона
+# Radar Extreme — интернет-магазин мотосалона
 
-## Описание
+Монорепозиторий интернет-магазина «Radar Extreme»: клиентский сайт, админ-панель и REST API. Сборка через Turborepo + npm workspaces, фронтенд на Vue 3 + Pinia + Vite, бэкенд на PHP 8 + MySQL.
 
-Интернет-магазин мотосалона "Radar Extreme" с использованием монорепозитория Turborepo, Vue.js фронтендом, PHP бэкендом и MySQL базой данных.
+---
+
+## Содержание
+
+1. [Стек](#стек)
+2. [Структура проекта](#структура-проекта)
+3. [Требования](#требования)
+4. [Установка](#установка)
+5. [Настройка БД](#настройка-бд)
+6. [Конфигурация окружения](#конфигурация-окружения)
+7. [Запуск](#запуск)
+8. [Доступные npm-скрипты](#доступные-npm-скрипты)
+9. [Сборка для продакшена](#сборка-для-продакшена)
+10. [Адреса сервисов](#адреса-сервисов)
+11. [Тестовые учётные данные](#тестовые-учётные-данные)
+12. [Архитектура frontend](#архитектура-frontend)
+13. [API endpoints](#api-endpoints)
+14. [Решение типичных проблем](#решение-типичных-проблем)
+
+---
+
+## Стек
+
+| Слой       | Технологии                                                      |
+| ---------- | --------------------------------------------------------------- |
+| Frontend   | Vue 3.5, Vue Router 4, Pinia 2, Vite 6, TypeScript 5            |
+| Admin      | Vue 3.5, Vue Router 4, Pinia 2, Vite 6, TypeScript 5            |
+| Backend    | PHP 8.2+, MySQL 8, Firebase JWT, vlucas/phpdotenv, ramsey/uuid  |
+| Tooling    | Turborepo 2, npm workspaces, Composer, Prettier, concurrently   |
 
 ## Структура проекта
 
 ```
-radar-extreme/
+www2/
 ├── apps/
-│   ├── frontend/          # Vue.js фронтенд для клиентов
-│   ├── admin/             # Vue.js админ-панель
-│   └── backend/           # PHP API бэкенд
+│   ├── frontend/                 # Клиентский сайт (порт 3000)
+│   │   └── src/
+│   │       ├── components/       # Logo, AppHeader, AppFooter, ProductCard, Toaster
+│   │       ├── views/            # Страницы (Home, Cart, Checkout, ...)
+│   │       ├── router/           # Маршруты + auth-guard
+│   │       ├── stores/           # Pinia: user, cart, catalog
+│   │       ├── utils/            # api, format, notify
+│   │       ├── assets/styles/    # main.css (общие стили)
+│   │       ├── App.vue
+│   │       └── main.ts
+│   ├── admin/                    # Админ-панель (порт 3001)
+│   │   └── src/                  # Аналогичная структура
+│   └── backend/                  # PHP API (порт 8000)
+│       ├── public/index.php      # Точка входа
+│       ├── src/
+│       │   ├── Config/
+│       │   ├── Controllers/
+│       │   ├── Middleware/
+│       │   ├── Models/
+│       │   └── Utils/
+│       └── composer.json
 ├── packages/
-│   ├── shared-types/      # Общие TypeScript типы
-│   └── ui-components/     # Переиспользуемые UI компоненты
+│   ├── shared-types/             # Общие TS-типы
+│   └── ui-components/            # Переиспользуемые компоненты
 ├── database/
-│   ├── migrations/        # SQL миграции
-│   └── seeds/             # Тестовые данные
-├── package.json           # Корневой package.json
-├── turbo.json             # Конфигурация Turborepo
-└── README.md              # Этот файл
+│   ├── migrations/               # SQL-миграции (001..009)
+│   └── seeds/                    # Тестовые данные
+├── package.json                  # workspace root
+├── turbo.json                    # Turborepo pipeline
+└── README.md
 ```
 
-## Установка и запуск
+## Требования
 
-### Требования
+- **Node.js** ≥ 18 (рекомендуется 20+)
+- **npm** ≥ 9
+- **PHP** ≥ 8.2 с расширениями `pdo_mysql`, `mbstring`, `openssl`
+- **MySQL** ≥ 8.0 (или совместимая MariaDB)
+- **Composer** ≥ 2
 
-- Node.js 18+
-- PHP 8.2+
-- MySQL 8.0+
-- Composer
-
-### Установка зависимостей
+Проверить установленные версии:
 
 ```bash
-# Установка npm зависимостей
+node -v
+npm -v
+php -v
+composer --version
+mysql --version
+```
+
+## Установка
+
+```bash
+# Клонировать репозиторий
+git clone <repository-url> www2
+cd www2
+
+# Установить JS-зависимости (для всех workspaces сразу)
 npm install
 
-# Установка PHP зависимостей
+# Установить PHP-зависимости
 cd apps/backend
 composer install
+cd ../..
 ```
 
-### Настройка базы данных
+## Настройка БД
 
-1. Создайте базу данных MySQL:
-```sql
-CREATE DATABASE radar_extreme;
-```
+1. Создайте базу данных:
 
-2. Выполните миграции:
-```bash
-cd database/migrations
-mysql -u root -p radar_extreme < 001_create_users_table.sql
-mysql -u root -p radar_extreme < 002_create_categories_table.sql
-mysql -u root -p radar_extreme < 003_create_products_table.sql
-mysql -u root -p radar_extreme < 004_create_orders_table.sql
-mysql -u root -p radar_extreme < 005_create_order_items_table.sql
-mysql -u root -p radar_extreme < 006_create_news_table.sql
-mysql -u root -p radar_extreme < 007_create_promotions_table.sql
-mysql -u root -p radar_extreme < 008_create_feedback_table.sql
-mysql -u root -p radar_extreme < 009_create_promo_codes_table.sql
-```
+   ```sql
+   CREATE DATABASE radar_extreme CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+
+2. Примените миграции (из корня репозитория):
+
+   ```bash
+   for f in database/migrations/*.sql; do
+     mysql -u root -p radar_extreme < "$f"
+   done
+   ```
+
+   Или вручную, по одной:
+
+   ```bash
+   mysql -u root -p radar_extreme < database/migrations/001_create_users_table.sql
+   mysql -u root -p radar_extreme < database/migrations/002_create_categories_table.sql
+   mysql -u root -p radar_extreme < database/migrations/003_create_products_table.sql
+   mysql -u root -p radar_extreme < database/migrations/004_create_orders_table.sql
+   mysql -u root -p radar_extreme < database/migrations/005_create_order_items_table.sql
+   mysql -u root -p radar_extreme < database/migrations/006_create_news_table.sql
+   mysql -u root -p radar_extreme < database/migrations/007_create_promotions_table.sql
+   mysql -u root -p radar_extreme < database/migrations/008_create_feedback_table.sql
+   mysql -u root -p radar_extreme < database/migrations/009_create_promo_codes_table.sql
+   ```
 
 3. Загрузите тестовые данные:
-```bash
-cd database/seeds
-mysql -u root -p radar_extreme < categories.sql
-mysql -u root -p radar_extreme < admin_user.sql
-mysql -u root -p radar_extreme < sample_products.sql
-```
 
-### Настройка окружения
+   ```bash
+   mysql -u root -p radar_extreme < database/seeds/categories.sql
+   mysql -u root -p radar_extreme < database/seeds/admin_user.sql
+   mysql -u root -p radar_extreme < database/seeds/sample_products.sql
+   ```
 
-1. Отредактируйте файл `apps/backend/.env`:
-```
+## Конфигурация окружения
+
+Создайте/отредактируйте файл `apps/backend/.env`:
+
+```env
 DB_HOST=localhost
+DB_PORT=3306
 DB_NAME=radar_extreme
 DB_USER=root
-DB_PASSWORD=your_password
-JWT_SECRET=your-secret-key-here
+DB_PASSWORD=
+
+JWT_SECRET=замените-на-длинный-секрет
+JWT_EXPIRATION=86400
+
+CORS_ORIGIN=http://localhost:3000
 ```
 
-### Запуск приложения
+> **Важно**: `JWT_SECRET` обязательно поменяйте перед деплоем.
+
+Frontend и admin обращаются к API через прокси Vite (`/api → http://localhost:8000`), правки переменных не требуют.
+
+## Запуск
+
+### Запуск всего стека одной командой
+
+Из корня репозитория:
 
 ```bash
-# Запуск всех приложений
-npm run dev
+npm run start
+```
 
-# Или запуск по отдельности:
-# Backend (PHP)
+Эквивалентно `npm run dev:all` — поднимает PHP-бэкенд, frontend и admin параллельно через `concurrently` с цветным префиксом в логах.
+
+### Раздельный запуск
+
+```bash
+# Backend (PHP встроенный сервер)
 cd apps/backend
-php -S localhost:8000 -t public
+composer dev
+# или: php -S localhost:8000 -t public
 
-# Frontend (Vue)
+# Frontend
 cd apps/frontend
 npm run dev
 
-# Admin Panel (Vue)
+# Admin
 cd apps/admin
 npm run dev
 ```
 
-## Функционал
+## Доступные npm-скрипты
 
-### Клиентская часть (Frontend)
-- Каталог товаров с фильтрацией по категориям
-- Детальная страница товара
-- Корзина покупок
-- Оформление заказа с промокодами
-- Новости и акции
-- Регистрация и авторизация
-- Личный кабинет с историей заказов
-- Обратная связь
+Из корня репозитория:
 
-### Админ-панель
-- Дашборд со статистикой
-- Управление товарами (CRUD)
-- Управление заказами (изменение статусов)
-- Управление новостями (CRUD)
-- Управление акциями (CRUD)
-- Просмотр обратной связи
+| Команда                | Что делает                                                   |
+| ---------------------- | ------------------------------------------------------------ |
+| `npm run start`        | Запускает backend + frontend + admin параллельно             |
+| `npm run dev:all`      | Алиас `start`                                                |
+| `npm run dev`          | Параллельный запуск через Turborepo (`turbo run dev`)        |
+| `npm run build`        | Билд frontend и admin (`turbo run build`)                    |
+| `npm run lint`         | Линтер для всех приложений                                   |
+| `npm run format`       | Prettier по `**/*.{ts,tsx,vue,md}`                           |
 
-### API (Backend)
-- RESTful API для всех операций
-- JWT аутентификация
-- Разделение прав доступа (admin/user)
-- Валидация данных
-- CORS поддержка
+В каждом приложении (`apps/frontend`, `apps/admin`):
 
-## Технологии
+| Команда           | Что делает                          |
+| ----------------- | ----------------------------------- |
+| `npm run dev`     | Vite dev-сервер                     |
+| `npm run build`   | `vue-tsc` + `vite build`            |
+| `npm run preview` | Просмотр продакшен-сборки           |
 
-### Frontend & Admin
-- Vue.js 3
-- Vue Router
-- Vuex
-- Axios
-- Vite
-- TypeScript
+В `apps/backend`:
 
-### Backend
-- PHP 8.2+
-- MySQL 8.0+
-- Firebase JWT
-- PHPDotenv
+| Команда         | Что делает                                |
+| --------------- | ----------------------------------------- |
+| `composer dev`  | `php -S localhost:8000 -t public`         |
+| `composer install` | Установка PHP-зависимостей             |
 
-### Инструменты
-- Turborepo (монорепозиторий)
-- npm workspaces
-- Composer
+## Сборка для продакшена
 
-## API Endpoints
+```bash
+# Сборка обоих frontend-приложений
+npm run build
+
+# Артефакты:
+#   apps/frontend/dist/
+#   apps/admin/dist/
+```
+
+Раздавайте `dist/` любым статическим веб-сервером (nginx, caddy). Для backend используйте PHP-FPM + nginx; entry point — `apps/backend/public/index.php`.
+
+## Адреса сервисов
+
+| Сервис   | URL                       |
+| -------- | ------------------------- |
+| Frontend | http://localhost:3000     |
+| Admin    | http://localhost:3001     |
+| API      | http://localhost:8000/api |
+
+## Тестовые учётные данные
+
+**Администратор** (после загрузки `database/seeds/admin_user.sql`):
+
+- **Email**: `admin@radarextreme.ru`
+- **Пароль**: `password`
+
+Войдите через **Admin** (http://localhost:3001/login). Обычные пользователи регистрируются на frontend через `/register`.
+
+## Архитектура frontend
+
+Оба Vue-приложения построены по одной схеме:
+
+- **`router/index.ts`** — маршруты + `beforeEach` (auth-guard, редирект гостей/авторизованных) + `afterEach` (document title) + `scrollBehavior`.
+- **`stores/`** — Pinia composition stores: `user` (auth + token в `localStorage`), `cart` (с авто-синхронизацией в `localStorage`), `catalog` (товары/категории).
+- **`utils/api.ts`** — `apiFetch<T>(url, options)` автоматически подставляет `Authorization: Bearer ...` и сериализует `json: ...`.
+- **`utils/notify.ts`** — реактивный массив toast-уведомлений + хелперы `notifySuccess` / `notifyError`. Отображается через `<Toaster />` в `App.vue`.
+- **`utils/format.ts`** — `formatPrice`, `formatDate`, `formatDateTime`.
+- **`assets/styles/main.css`** — CSS-переменные дизайн-системы (`--color-bg`, `--color-accent`, `--radius-md`...) и базовые классы `.btn`, `.input`, `.tag`, `.container`, `.section`.
+- **`components/`** — `Logo`, `AppHeader` (с бургер-меню), `AppFooter`, `ProductCard`, `Toaster`.
+
+## API endpoints
+
+Все ответы возвращаются в формате `{ success: boolean, data?: T, error?: string }`.
 
 ### Аутентификация
-- `POST /api/auth/login` - Вход
-- `POST /api/auth/register` - Регистрация
-- `GET /api/auth/me` - Получение текущего пользователя
 
-### Товары
-- `GET /api/products` - Список товаров
-- `GET /api/products/:id` - Детали товара
-- `POST /api/products` - Создание товара (admin)
-- `PUT /api/products/:id` - Обновление товара (admin)
-- `DELETE /api/products/:id` - Удаление товара (admin)
+| Метод | Путь                  | Доступ | Описание                |
+| ----- | --------------------- | ------ | ----------------------- |
+| POST  | `/api/auth/login`     | public | Логин                   |
+| POST  | `/api/auth/register`  | public | Регистрация             |
+| GET   | `/api/auth/me`        | user   | Текущий пользователь    |
 
-### Категории
-- `GET /api/categories` - Список категорий
+### Каталог
+
+| Метод  | Путь                  | Доступ | Описание           |
+| ------ | --------------------- | ------ | ------------------ |
+| GET    | `/api/products`       | public | Список товаров     |
+| GET    | `/api/products/:id`   | public | Карточка товара    |
+| POST   | `/api/products`       | admin  | Создание           |
+| PUT    | `/api/products/:id`   | admin  | Обновление         |
+| DELETE | `/api/products/:id`   | admin  | Удаление           |
+| GET    | `/api/categories`     | public | Категории          |
 
 ### Заказы
-- `GET /api/orders` - Заказы пользователя
-- `POST /api/orders` - Создание заказа
-- `GET /api/orders/all` - Все заказы (admin)
-- `PUT /api/orders/:id/status` - Обновление статуса (admin)
 
-### Новости
-- `GET /api/news` - Список новостей
-- `POST /api/news` - Создание новости (admin)
-- `PUT /api/news/:id` - Обновление новости (admin)
-- `DELETE /api/news/:id` - Удаление новости (admin)
+| Метод | Путь                       | Доступ | Описание                     |
+| ----- | -------------------------- | ------ | ---------------------------- |
+| GET   | `/api/orders`              | user   | Заказы текущего пользователя |
+| POST  | `/api/orders`              | user   | Оформление заказа            |
+| GET   | `/api/orders/all`          | admin  | Все заказы                   |
+| PUT   | `/api/orders/:id/status`   | admin  | Смена статуса                |
 
-### Акции
-- `GET /api/promotions` - Список акций
-- `POST /api/promotions` - Создание акции (admin)
-- `PUT /api/promotions/:id` - Обновление акции (admin)
-- `DELETE /api/promotions/:id` - Удаление акции (admin)
+### Контент
 
-### Обратная связь
-- `POST /api/feedback` - Отправка сообщения
-- `GET /api/feedback` - Список сообщений (admin)
-- `PUT /api/feedback/:id/status` - Обновление статуса (admin)
+| Метод  | Путь                    | Доступ | Описание         |
+| ------ | ----------------------- | ------ | ---------------- |
+| GET    | `/api/news`             | public | Список новостей  |
+| POST   | `/api/news`             | admin  | Создание         |
+| PUT    | `/api/news/:id`         | admin  | Обновление       |
+| DELETE | `/api/news/:id`         | admin  | Удаление         |
+| GET    | `/api/promotions`       | public | Список акций     |
+| POST   | `/api/promotions`       | admin  | Создание         |
+| PUT    | `/api/promotions/:id`   | admin  | Обновление       |
+| DELETE | `/api/promotions/:id`   | admin  | Удаление         |
 
-### Промокоды
-- `POST /api/promo-codes/validate` - Проверка промокода
-- `GET /api/promo-codes` - Список промокодов (admin)
-- `POST /api/promo-codes` - Создание промокода (admin)
-- `DELETE /api/promo-codes/:id` - Удаление промокода (admin)
+### Обратная связь и промокоды
 
-## Тестовые данные
+| Метод | Путь                              | Доступ | Описание              |
+| ----- | --------------------------------- | ------ | --------------------- |
+| POST  | `/api/feedback`                   | user   | Отправить сообщение   |
+| GET   | `/api/feedback`                   | admin  | Все сообщения         |
+| PUT   | `/api/feedback/:id/status`        | admin  | Смена статуса         |
+| POST  | `/api/promo-codes/validate`       | public | Валидация промокода   |
+| GET   | `/api/promo-codes`                | admin  | Список промокодов     |
+| POST  | `/api/promo-codes`                | admin  | Создание              |
+| DELETE | `/api/promo-codes/:id`           | admin  | Удаление              |
 
-### Администратор
-- Email: admin@radarextreme.ru
-- Пароль: password
+## Решение типичных проблем
 
-### Тестовые товары
-- Yamaha YZF-R1 (мотоцикл)
-- Kawasaki Ninja ZX-10R (мотоцикл)
-- Polaris Sportsman 570 (квадроцикл)
-- Yamaha VK Professional II (снегоход)
-- Казанка-5 (лодка)
-- Yamaha F150 (лодочный мотор)
+**`Error: ENOENT ... vendor/autoload.php`**
+Не выполнен `composer install` в `apps/backend`.
+
+**`SQLSTATE[HY000] [2002]`** — нет соединения с MySQL.
+Проверьте, что MySQL запущен и параметры в `apps/backend/.env` корректны.
+
+**CORS-ошибка в браузере**
+Frontend ходит на API через Vite-прокси — проверьте, что используете `http://localhost:3000` (а не file://) и `CORS_ORIGIN` в `.env` совпадает.
+
+**Порт 3000/3001/8000 занят**
+Закройте занявший процесс или поменяйте порт в `apps/{frontend,admin}/vite.config.ts` / при запуске `php -S localhost:XXXX -t public`.
+
+**Редирект на `/login` сразу после входа**
+Проверьте, что в браузерном `localStorage` появился ключ `token` (frontend) или `admin_token` (admin). Если нет — backend не вернул `success: true` с токеном, смотрите ответ `/api/auth/login` в DevTools.
+
+**`vue-tsc` падает на `.vue` импортах**
+Должен присутствовать `apps/{frontend,admin}/src/shims-vue.d.ts` с декларацией `*.vue` модуля.
+
+---
 
 ## Лицензия
 
-MIT License
+MIT
