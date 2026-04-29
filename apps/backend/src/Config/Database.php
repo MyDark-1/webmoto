@@ -26,6 +26,11 @@ class Database {
                         PDO::ATTR_EMULATE_PREPARES => false
                     ]
                 );
+
+                // Принудительная установка кодировки для Windows MySQL
+                self::$connection->exec("SET NAMES utf8mb4");
+                self::$connection->exec("SET CHARACTER SET utf8mb4");
+                self::$connection->exec("SET SESSION collation_connection = 'utf8mb4_unicode_ci'");
             } catch (PDOException $e) {
                 die(json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]));
             }

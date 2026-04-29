@@ -39,6 +39,25 @@
       </section>
 
       <section class="profile__card">
+        <h2>Мои данные</h2>
+        <form class="profile-form" @submit.prevent="saveProfile">
+          <label>
+            ФИО
+            <input v-model="profileForm.fullname" type="text" class="input" placeholder="Ваше полное имя" />
+          </label>
+          <label>
+            Email
+            <input v-model="profileForm.email" type="email" class="input" />
+          </label>
+          <label>
+            Телефон
+            <input v-model="profileForm.phone" type="tel" class="input" placeholder="+7 (XXX) XXX-XX-XX" />
+          </label>
+          <button type="submit" class="btn btn--primary">Сохранить изменения</button>
+        </form>
+      </section>
+
+      <section class="profile__card">
         <h2>Связаться с нами</h2>
         <form class="feedback" @submit.prevent="sendFeedback">
           <textarea
@@ -69,6 +88,12 @@ const orders = ref<any[]>([])
 const loading = ref(true)
 const feedbackMessage = ref('')
 
+const profileForm = ref({
+  fullname: user.user?.fullname || '',
+  email: user.user?.email || '',
+  phone: user.user?.phone || ''
+})
+
 const statusText = (s: string) =>
   ({
     pending: 'Ожидает',
@@ -95,6 +120,24 @@ function onLogout() {
   user.logout()
   notifySuccess('Вы вышли из аккаунта')
   router.push('/')
+}
+
+async function saveProfile() {
+  const data = await apiFetch('/api/user/profile', {
+    method: 'PUT',
+    json: {
+      fullname: profileForm.value.fullname,
+      email: profileForm.value.email,
+      phone: profileForm.value.phone
+    }
+  })
+  
+  if (data.success) {
+    notifySuccess('Данные профиля обновлены')
+    user.user = { ...user.user, ...profileForm.value }
+  } else {
+    notifyError(data.error || 'Ошибка при сохранении')
+  }
 }
 
 onMounted(async () => {
@@ -223,6 +266,20 @@ onMounted(async () => {
 }
 .feedback textarea {
   resize: vertical;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-muted);
 }
 
 @media (max-width: 900px) {

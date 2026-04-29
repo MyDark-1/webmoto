@@ -36,11 +36,12 @@ class Product {
 
     public static function create(array $data): int {
         $db = Database::getConnection();
-        $stmt = $db->prepare("INSERT INTO products (category_id, title, description, price, image, status) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $db->prepare("INSERT INTO products (category_id, title, description, characteristics, price, image, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $data['category_id'],
             $data['title'],
-            $data['description'],
+            $data['description'] ?? null,
+            $data['characteristics'] ?? null,
             $data['price'],
             $data['image'],
             $data['status'] ?? 'active'
@@ -50,11 +51,12 @@ class Product {
 
     public static function update(int $id, array $data): bool {
         $db = Database::getConnection();
-        $stmt = $db->prepare("UPDATE products SET category_id = ?, title = ?, description = ?, price = ?, image = ?, status = ? WHERE id = ?");
+        $stmt = $db->prepare("UPDATE products SET category_id = ?, title = ?, description = ?, characteristics = ?, price = ?, image = ?, status = ? WHERE id = ?");
         return $stmt->execute([
             $data['category_id'],
             $data['title'],
-            $data['description'],
+            $data['description'] ?? null,
+            $data['characteristics'] ?? null,
             $data['price'],
             $data['image'],
             $data['status'],

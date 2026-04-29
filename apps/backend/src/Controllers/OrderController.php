@@ -58,7 +58,14 @@ class OrderController {
             $total += $product['price'] * $item['quantity'];
         }
 
-        $orderId = Order::create($authUser->user_id, $total);
+        $orderId = Order::create(
+            $authUser->user_id, 
+            $total,
+            $data['name'] ?? null,
+            $data['phone'] ?? null,
+            $data['email'] ?? null,
+            $data['wishes'] ?? null
+        );
 
         foreach ($data['items'] as $item) {
             $product = Product::findById($item['product_id']);

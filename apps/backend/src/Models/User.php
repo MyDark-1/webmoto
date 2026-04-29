@@ -26,4 +26,10 @@ class User {
         $stmt->execute([$email, $hashedPassword, $role]);
         return (int)$db->lastInsertId();
     }
+
+    public static function updateProfile(int $id, ?string $fullname = null, ?string $email = null, ?string $phone = null): bool {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("UPDATE users SET fullname = COALESCE(?, fullname), email = COALESCE(?, email), phone = COALESCE(?, phone) WHERE id = ?");
+        return $stmt->execute([$fullname, $email, $phone, $id]);
+    }
 }

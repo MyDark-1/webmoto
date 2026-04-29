@@ -10,6 +10,7 @@ use App\Controllers\NewsController;
 use App\Controllers\PromotionController;
 use App\Controllers\FeedbackController;
 use App\Controllers\PromoCodeController;
+use App\Controllers\UserController;
 
 class Router {
     public static function dispatch(): void {
@@ -96,6 +97,10 @@ class Router {
             (new PromoCodeController())->store();
         } elseif (preg_match('#^/promo-codes/(\d+)$#', $uri, $matches) && $method === 'DELETE') {
             (new PromoCodeController())->delete((int)$matches[1]);
+        }
+        // Маршруты пользователя
+        elseif ($uri === '/user/profile' && $method === 'PUT') {
+            (new UserController())->updateProfile();
         }
         // 404
         else {

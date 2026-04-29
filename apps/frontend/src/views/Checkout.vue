@@ -34,6 +34,14 @@
         </fieldset>
 
         <fieldset>
+          <legend>Комментарий к заказу</legend>
+          <label>
+            Пожелания / комментарий
+            <textarea v-model="form.wishes" class="input" rows="3" placeholder="Дополнительные пожелания, комментарии для курьера и т.д."></textarea>
+          </label>
+        </fieldset>
+
+        <fieldset>
           <legend>Промокод</legend>
           <div class="checkout__promo">
             <input v-model="promoCode" type="text" class="input" placeholder="Введите код" />
@@ -79,7 +87,7 @@ import { notifyError, notifySuccess } from '../utils/notify'
 const cart = useCartStore()
 const router = useRouter()
 
-const form = ref({ name: '', email: '', phone: '', address: '' })
+const form = ref({ name: '', email: '', phone: '', address: '', wishes: '' })
 const promoCode = ref('')
 const discount = ref(0)
 
@@ -106,7 +114,12 @@ async function submitOrder() {
       items: cart.items.map((i) => ({
         product_id: i.product.id,
         quantity: i.quantity
-      }))
+      })),
+      name: form.value.name,
+      email: form.value.email,
+      phone: form.value.phone,
+      address: form.value.address,
+      wishes: form.value.wishes
     }
   })
   if (data.success) {
