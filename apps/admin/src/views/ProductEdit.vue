@@ -42,11 +42,41 @@
       </div>
 
       <div class="form-group">
-        <label>Характеристики</label>
+        <label>Основные характеристики</label>
         <textarea v-model="form.characteristics" class="input" rows="6" placeholder="Характеристики товара, каждая с новой строки:
 Материал: Сталь
 Вес: 2 кг
 Размер: 20x30 см"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Спецификации (разделы с характеристиками)</label>
+        <textarea v-model="form.specifications" class="input" rows="8" placeholder='Формат JSON:
+[
+  {
+    "title": "Двигатель",
+    "items": {
+      "Тип": "Бензиновый",
+      "Объём": "200 см³"
+    }
+  },
+  {
+    "title": "Габариты",
+    "items": {
+      "Длина": "2100 мм",
+      "Вес": "120 кг"
+    }
+  }
+]'></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Наличие</label>
+        <select v-model="form.stock_status" class="input">
+          <option value="in_stock">В наличии</option>
+          <option value="out_of_stock">Нет в наличии</option>
+          <option value="on_order">Под заказ</option>
+        </select>
       </div>
 
       <div class="form-actions">
@@ -79,7 +109,9 @@ const form = ref({
   image: '',
   description: '',
   characteristics: '',
-  status: 'active'
+  specifications: '',
+  status: 'active',
+  stock_status: 'in_stock'
 })
 
 async function loadCategories() {
@@ -101,7 +133,9 @@ async function loadProduct() {
       image: data.data.image,
       description: data.data.description || '',
       characteristics: data.data.characteristics || '',
-      status: data.data.status
+      specifications: data.data.specifications || '',
+      status: data.data.status,
+      stock_status: data.data.stock_status || 'in_stock'
     }
   }
 }

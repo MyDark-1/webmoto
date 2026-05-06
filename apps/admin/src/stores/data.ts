@@ -20,7 +20,7 @@ export const useAdminDataStore = defineStore('admin-data', () => {
     news,
     promotions,
     feedback,
-    fetchProducts: () => load('/api/products', products),
+    fetchProducts: () => load('/api/products?all=1', products),
     fetchOrders: () => load('/api/orders/all', orders),
     fetchNews: () => load('/api/news', news),
     fetchPromotions: () => load('/api/promotions', promotions),

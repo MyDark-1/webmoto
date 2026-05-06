@@ -38,38 +38,39 @@
         </ul>
       </section>
 
-      <section class="profile__card">
-        <h2>Мои данные</h2>
-        <form class="profile-form" @submit.prevent="saveProfile">
-          <label>
-            ФИО
-            <input v-model="profileForm.fullname" type="text" class="input" placeholder="Ваше полное имя" />
-          </label>
-          <label>
-            Email
-            <input v-model="profileForm.email" type="email" class="input" />
-          </label>
-          <label>
-            Телефон
-            <input v-model="profileForm.phone" type="tel" class="input" placeholder="+7 (XXX) XXX-XX-XX" />
-          </label>
-          <button type="submit" class="btn btn--primary">Сохранить изменения</button>
-        </form>
-      </section>
+      <div class="profile__side">
+        <section class="profile__card">
+          <h2>Мои данные</h2>
+          <div class="profile-data">
+            <div class="profile-data__row">
+              <span class="profile-data__label">ФИО</span>
+              <span class="profile-data__value">{{ user.user?.fullname || '—' }}</span>
+            </div>
+            <div class="profile-data__row">
+              <span class="profile-data__label">Email</span>
+              <span class="profile-data__value">{{ user.user?.email || '—' }}</span>
+            </div>
+            <div class="profile-data__row">
+              <span class="profile-data__label">Телефон</span>
+              <span class="profile-data__value">{{ user.user?.phone || '—' }}</span>
+            </div>
+          </div>
+        </section>
 
-      <section class="profile__card">
-        <h2>Связаться с нами</h2>
-        <form class="feedback" @submit.prevent="sendFeedback">
-          <textarea
-            v-model="feedbackMessage"
-            class="input"
-            rows="5"
-            placeholder="Ваш вопрос или пожелание..."
-            required
-          ></textarea>
-          <button type="submit" class="btn btn--primary">Отправить</button>
-        </form>
-      </section>
+        <section class="profile__card">
+          <h2>Связаться с нами</h2>
+          <form class="feedback" @submit.prevent="sendFeedback">
+            <textarea
+              v-model="feedbackMessage"
+              class="input"
+              rows="5"
+              placeholder="Ваш вопрос или пожелание..."
+              required
+            ></textarea>
+            <button type="submit" class="btn btn--primary">Отправить</button>
+          </form>
+        </section>
+      </div>
     </div>
   </section>
 </template>
@@ -87,12 +88,6 @@ const router = useRouter()
 const orders = ref<any[]>([])
 const loading = ref(true)
 const feedbackMessage = ref('')
-
-const profileForm = ref({
-  fullname: user.user?.fullname || '',
-  email: user.user?.email || '',
-  phone: user.user?.phone || ''
-})
 
 const statusText = (s: string) =>
   ({
@@ -120,24 +115,6 @@ function onLogout() {
   user.logout()
   notifySuccess('Вы вышли из аккаунта')
   router.push('/')
-}
-
-async function saveProfile() {
-  const data = await apiFetch('/api/user/profile', {
-    method: 'PUT',
-    json: {
-      fullname: profileForm.value.fullname,
-      email: profileForm.value.email,
-      phone: profileForm.value.phone
-    }
-  })
-  
-  if (data.success) {
-    notifySuccess('Данные профиля обновлены')
-    user.user = { ...user.user, ...profileForm.value }
-  } else {
-    notifyError(data.error || 'Ошибка при сохранении')
-  }
 }
 
 onMounted(async () => {
@@ -172,6 +149,11 @@ onMounted(async () => {
   gap: 24px;
   align-items: start;
 }
+.profile__side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 .profile__card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -190,6 +172,27 @@ onMounted(async () => {
 }
 .profile__empty p {
   margin-bottom: 16px;
+}
+.profile-data {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.profile-data__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-data__label {
+  font-size: 12px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.profile-data__value {
+  font-size: 15px;
+  color: var(--color-text);
+  word-break: break-word;
 }
 .orders {
   display: flex;
@@ -266,20 +269,6 @@ onMounted(async () => {
 }
 .feedback textarea {
   resize: vertical;
-}
-
-.profile-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.profile-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--color-muted);
 }
 
 @media (max-width: 900px) {

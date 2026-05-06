@@ -10,7 +10,8 @@ use App\Middleware\AdminMiddleware;
 class ProductController {
     public function index(): void {
         $category = $_GET['category'] ?? null;
-        $products = Product::findAll($category);
+        $all = ($_GET['all'] ?? '') === '1';
+        $products = Product::findAll($category, $all);
         Response::success($products);
     }
 

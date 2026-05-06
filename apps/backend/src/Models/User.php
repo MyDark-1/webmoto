@@ -19,11 +19,19 @@ class User {
         return $stmt->fetch() ?: null;
     }
 
-    public static function create(string $email, string $password, string $role = 'user'): int {
+    public static function create(
+        string $email,
+        string $password,
+        string $fullname = '',
+        string $phone = '',
+        string $role = 'user'
+    ): int {
         $db = Database::getConnection();
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $db->prepare("INSERT INTO users (email, password, role) VALUES (?, ?, ?)");
-        $stmt->execute([$email, $hashedPassword, $role]);
+        $stmt = $db->prepare(
+            "INSERT INTO users (email, password, fullname, phone, role) VALUES (?, ?, ?, ?, ?)"
+        );
+        $stmt->execute([$email, $hashedPassword, $fullname, $phone, $role]);
         return (int)$db->lastInsertId();
     }
 

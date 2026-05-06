@@ -19,6 +19,7 @@
         <router-link to="/products" @click="open = false">Каталог</router-link>
         <router-link to="/news" @click="open = false">Новости</router-link>
         <router-link to="/promotions" @click="open = false">Акции</router-link>
+        <router-link to="/salons" @click="open = false">Мотосалоны</router-link>
       </nav>
 
       <div class="app-header__actions" :class="{ 'app-header__actions--open': open }">
@@ -32,6 +33,11 @@
             Профиль
           </router-link>
           <button class="btn btn--white" @click="onLogout">Выйти</button>
+          <span
+            v-if="userInitials"
+            class="app-header__initials"
+            :title="user.user?.fullname"
+          >{{ userInitials }}</span>
         </template>
         <template v-else>
           <router-link to="/login" class="btn btn--white" @click="open = false">
@@ -47,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Logo from './Logo.vue'
 import { useUserStore } from '../stores/user'
@@ -59,6 +65,17 @@ const cart = useCartStore()
 const route = useRoute()
 const router = useRouter()
 const open = ref(false)
+
+const userInitials = computed(() => {
+  const fullname = user.user?.fullname
+  if (!fullname) return ''
+  const parts = fullname.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return ''
+  // берём первую букву имени и первую букву фамилии
+  const first = parts[0][0]
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+  return (first + last).toUpperCase()
+})
 
 watch(() => route.fullPath, () => (open.value = false))
 
@@ -129,6 +146,22 @@ function onLogout() {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 999px;
+}
+.app-header__initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  cursor: default;
+  user-select: none;
 }
 .app-header__burger {
   display: none;

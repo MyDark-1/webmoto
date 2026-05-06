@@ -22,7 +22,7 @@ export const useUserStore = defineStore('user', () => {
     return data
   }
 
-  async function register(credentials: { email: string; password: string }) {
+  async function register(credentials: { email: string; password: string; fullname?: string; phone?: string }) {
     const data = await apiFetch<any>('/api/auth/register', {
       method: 'POST',
       json: credentials,

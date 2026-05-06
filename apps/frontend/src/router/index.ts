@@ -4,9 +4,12 @@ import Home from '../views/Home.vue'
 import Products from '../views/Products.vue'
 import ProductDetail from '../views/ProductDetail.vue'
 import Cart from '../views/Cart.vue'
+import MotorcycleSalons from '../views/MotorcycleSalons.vue'
 import Checkout from '../views/Checkout.vue'
 import News from '../views/News.vue'
+import NewsDetail from '../views/NewsDetail.vue'
 import Promotions from '../views/Promotions.vue'
+import PromotionDetail from '../views/PromotionDetail.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Profile from '../views/Profile.vue'
@@ -17,13 +20,16 @@ const routes: RouteRecordRaw[] = [
   { path: '/products', component: Products, meta: { title: 'Каталог' } },
   { path: '/products/:id', component: ProductDetail, meta: { title: 'Товар' } },
   { path: '/cart', component: Cart, meta: { title: 'Корзина' } },
+  { path: '/salons', component: MotorcycleSalons, meta: { title: 'Мотосалоны' } },
   {
     path: '/checkout',
     component: Checkout,
     meta: { title: 'Оформление', requiresAuth: true }
   },
   { path: '/news', component: News, meta: { title: 'Новости' } },
+  { path: '/news/:id', component: NewsDetail, meta: { title: 'Новость' } },
   { path: '/promotions', component: Promotions, meta: { title: 'Акции' } },
+  { path: '/promotions/:id', component: PromotionDetail, meta: { title: 'Акция' } },
   { path: '/login', component: Login, meta: { title: 'Вход', guestOnly: true } },
   {
     path: '/register',

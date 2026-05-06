@@ -11,7 +11,12 @@
       Сейчас нет активных акций.
     </div>
     <div v-else class="promotions__grid">
-      <article v-for="promo in promotions" :key="promo.id" class="promo-card">
+      <router-link
+        v-for="promo in promotions"
+        :key="promo.id"
+        :to="`/promotions/${promo.id}`"
+        class="promo-card"
+      >
         <div class="promo-card__media">
           <img v-if="promo.image" :src="promo.image" :alt="promo.title" />
           <span v-if="promo.discount" class="promo-card__discount">
@@ -22,7 +27,7 @@
           <h3>{{ promo.title }}</h3>
           <p>{{ promo.content }}</p>
         </div>
-      </article>
+      </router-link>
     </div>
   </section>
 </template>

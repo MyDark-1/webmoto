@@ -35,6 +35,8 @@ class AuthController {
             'user' => [
                 'id' => $user['id'],
                 'email' => $user['email'],
+                'fullname' => $user['fullname'] ?? '',
+                'phone' => $user['phone'] ?? '',
                 'role' => $user['role']
             ]
         ]);
@@ -58,7 +60,10 @@ class AuthController {
             return;
         }
 
-        $userId = User::create($data['email'], $data['password']);
+        $fullname = trim($data['fullname'] ?? '');
+        $phone = trim($data['phone'] ?? '');
+
+        $userId = User::create($data['email'], $data['password'], $fullname, $phone);
 
         $token = JWT::encode(['user_id' => $userId, 'role' => 'user']);
 
@@ -67,6 +72,8 @@ class AuthController {
             'user' => [
                 'id' => $userId,
                 'email' => $data['email'],
+                'fullname' => $fullname,
+                'phone' => $phone,
                 'role' => 'user'
             ]
         ]);
@@ -90,6 +97,8 @@ class AuthController {
         Response::success([
             'id' => $user['id'],
             'email' => $user['email'],
+            'fullname' => $user['fullname'] ?? '',
+            'phone' => $user['phone'] ?? '',
             'role' => $user['role']
         ]);
     }

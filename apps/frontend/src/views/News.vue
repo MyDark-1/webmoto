@@ -11,7 +11,12 @@
       Пока нет новостей.
     </div>
     <div v-else class="news__grid">
-      <article v-for="item in news" :key="item.id" class="news-card">
+      <router-link
+        v-for="item in news"
+        :key="item.id"
+        :to="`/news/${item.id}`"
+        class="news-card"
+      >
         <div class="news-card__media">
           <img v-if="item.image" :src="item.image" :alt="item.title" />
           <div v-else class="news-card__placeholder">RX</div>
@@ -21,7 +26,7 @@
           <h3>{{ item.title }}</h3>
           <p>{{ excerpt(item.content) }}</p>
         </div>
-      </article>
+      </router-link>
     </div>
   </section>
 </template>

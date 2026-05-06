@@ -10,15 +10,17 @@
 
         <div class="promo__grid">
           <article
-            v-for="item in promos"
+            v-for="(item, index) in promos"
             :key="item.id"
             class="promo-card"
-            :class="{ 'promo-card--featured': item.featured }"
+            :class="{ 'promo-card--featured': index === 0 }"
           >
-            <span class="promo-card__badge">{{ item.tag }}</span>
+            <span class="promo-card__badge">
+              {{ item.discount ? '−' + item.discount + '%' : 'Акция' }}
+            </span>
             <h3>{{ item.title }}</h3>
-            <p>{{ item.description }}</p>
-            <router-link :to="item.link" class="promo-card__link">
+            <p>{{ item.content }}</p>
+            <router-link to="/promotions" class="promo-card__link">
               Подробнее →
             </router-link>
           </article>
@@ -109,6 +111,7 @@ import { computed, onMounted, ref } from 'vue'
 import ProductCard from '../components/ProductCard.vue'
 import { useCatalogStore } from '../stores/catalog'
 import { useCartStore } from '../stores/cart'
+import { apiFetch } from '../utils/api'
 
 const catalog = useCatalogStore()
 const cart = useCartStore()
@@ -117,35 +120,7 @@ const subscribed = ref(false)
 
 const featured = computed(() => catalog.products.slice(0, 8))
 
-const promos = [
-  {
-    id: 1,
-    tag: 'Акция',
-    title: 'Скидка 15% на экипировку',
-    description:
-      'При покупке любого мотоцикла — шлем, перчатки и куртка со скидкой до 15%.',
-    link: '/promotions',
-    featured: true
-  },
-  {
-    id: 2,
-    tag: 'Новость',
-    title: 'Новый модельный ряд 2026',
-    description:
-      'В салон поступили новые endure-модели и квадроциклы последнего поколения.',
-    link: '/news',
-    featured: false
-  },
-  {
-    id: 3,
-    tag: 'Сервис',
-    title: 'Бесплатное ТО в подарок',
-    description:
-      'Первое техническое обслуживание в подарок каждому покупателю мотоцикла.',
-    link: '/promotions',
-    featured: false
-  }
-]
+const promos = ref<any[]>([])
 
 const benefits = [
   {
@@ -176,9 +151,18 @@ function subscribe() {
   setTimeout(() => (subscribed.value = false), 3000)
 }
 
-onMounted(() => {
+onMounted(async () => {
   catalog.fetchCategories()
   catalog.fetchProducts()
+
+  const data = await apiFetch<any[]>('/api/promotions')
+  if (data.success && data.data) {
+    // сортируем по created_at — новые первыми, берём не больше 3
+    const sorted = [...data.data].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    promos.value = sorted.slice(0, 3)
+  }
 })
 </script>
 

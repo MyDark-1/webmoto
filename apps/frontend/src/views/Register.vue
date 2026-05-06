@@ -2,12 +2,20 @@
   <div class="auth">
     <div class="auth__card">
       <h1>Регистрация</h1>
-      <p class="auth__subtitle">Создайте аккаунт, чтобы получать персональные предложения.</p>
+      <p class="auth__subtitle">Заполните данные — они будут сохранены в личном кабинете.</p>
 
       <form class="auth__form" @submit.prevent="register">
         <label>
+          ФИО
+          <input class="auth__input" v-model="fullname" type="text" required placeholder="Иванов Иван Иванович" />
+        </label>
+        <label>
           Email
           <input class="auth__input" v-model="email" type="email" required />
+        </label>
+        <label>
+          Телефон
+          <input class="auth__input" v-model="phone" type="tel" required placeholder="+7 (XXX) XXX-XX-XX" />
         </label>
         <label>
           Пароль
@@ -40,6 +48,8 @@ const user = useUserStore()
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const fullname = ref('')
+const phone = ref('')
 const error = ref('')
 
 async function register() {
@@ -47,10 +57,15 @@ async function register() {
     error.value = 'Пароли не совпадают'
     return
   }
-  const result = await user.register({ email: email.value, password: password.value })
+  const result = await user.register({
+    email: email.value,
+    password: password.value,
+    fullname: fullname.value,
+    phone: phone.value,
+  })
   if (result.success) {
     notifySuccess('Аккаунт создан')
-    router.push('/')
+    router.push('/profile')
   } else {
     error.value = result.error || 'Не удалось зарегистрироваться'
   }

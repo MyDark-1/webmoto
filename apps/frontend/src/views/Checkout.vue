@@ -12,16 +12,37 @@
         <fieldset>
           <legend>Контактные данные</legend>
           <label>
-            Имя
-            <input v-model="form.name" type="text" required class="input" />
+            ФИО
+            <input
+              v-model="form.name"
+              type="text"
+              required
+              class="input"
+              :readonly="isAuthenticated"
+              :class="{ 'input--readonly': isAuthenticated }"
+            />
           </label>
           <label>
             Email
-            <input v-model="form.email" type="email" required class="input" />
+            <input
+              v-model="form.email"
+              type="email"
+              required
+              class="input"
+              :readonly="isAuthenticated"
+              :class="{ 'input--readonly': isAuthenticated }"
+            />
           </label>
           <label>
             Телефон
-            <input v-model="form.phone" type="tel" required class="input" />
+            <input
+              v-model="form.phone"
+              type="tel"
+              required
+              class="input"
+              :readonly="isAuthenticated"
+              :class="{ 'input--readonly': isAuthenticated }"
+            />
           </label>
         </fieldset>
 
@@ -77,21 +98,32 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cart'
+import { useUserStore } from '../stores/user'
 import { apiFetch } from '../utils/api'
 import { formatPrice } from '../utils/format'
 import { notifyError, notifySuccess } from '../utils/notify'
 
 const cart = useCartStore()
+const user = useUserStore()
 const router = useRouter()
 
 const form = ref({ name: '', email: '', phone: '', address: '', wishes: '' })
 const promoCode = ref('')
 const discount = ref(0)
+const isAuthenticated = computed(() => user.isAuthenticated)
 
 const total = computed(() => cart.total * (1 - discount.value / 100))
+
+onMounted(() => {
+  if (user.user) {
+    form.value.name = user.user.fullname || ''
+    form.value.email = user.user.email || ''
+    form.value.phone = user.user.phone || ''
+  }
+})
 
 async function applyPromoCode() {
   if (!promoCode.value) return

@@ -76,6 +76,11 @@
             </td>
             <td>
               <button @click="editProduct(product)" class="btn-small">Редактировать</button>
+              <button
+                @click="toggleStatus(product)"
+                class="btn-small"
+                :class="product.status === 'active' ? 'btn-warning' : 'btn-success'"
+              >{{ product.status === 'active' ? 'Скрыть' : 'Показать' }}</button>
               <button @click="deleteProduct(product.id)" class="btn-small btn-danger">Удалить</button>
             </td>
           </tr>
@@ -166,14 +171,40 @@ const cancelEdit = () => {
 }
 
 const deleteProduct = async (id) => {
-  if (!confirm('Удалить товар?')) return
+  if (!confirm('Удалить товар навсегда? Это действие нельзя отменить.')) return
   const response = await fetch(`/api/products/${id}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${userStore.token}` }
   })
   const data = await response.json()
   if (data.success) {
-    notifySuccess('Товар удалён')
+    notifySuccess('Товар удалён навсегда')
+    dataStore.fetchProducts()
+  } else {
+    notifyError(data.error || 'Ошибка')
+  }
+}
+
+const toggleStatus = async (product) => {
+  const newStatus = product.status === 'active' ? 'inactive' : 'active'
+  const response = await fetch(`/api/products/${product.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userStore.token}`
+    },
+    body: JSON.stringify({
+      category_id: product.category_id,
+      title: product.title,
+      description: product.description,
+      price: product.price,
+      image: product.image,
+      status: newStatus
+    })
+  })
+  const data = await response.json()
+  if (data.success) {
+    notifySuccess(newStatus === 'active' ? 'Товар опубликован' : 'Товар скрыт')
     dataStore.fetchProducts()
   } else {
     notifyError(data.error || 'Ошибка')
@@ -221,6 +252,13 @@ onMounted(() => {
 
 .btn-danger {
   background: #dc3545;
+}
+.btn-warning {
+  background: #ffc107;
+  color: #000;
+}
+.btn-success {
+  background: #28a745;
 }
 
 .modal {
