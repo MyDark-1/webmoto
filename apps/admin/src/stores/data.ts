@@ -10,8 +10,15 @@ export const useAdminDataStore = defineStore('admin-data', () => {
   const feedback = ref<any[]>([])
 
   async function load<T>(url: string, target: { value: T[] }) {
-    const data = await apiFetch<T[]>(url)
-    if (data.success && data.data) target.value = data.data
+    const res = await apiFetch<any>(url)
+    if (res.success) {
+      // поддержка пагинированного ответа { items, total, page, pages }
+      if (res.data && res.data.items) {
+        target.value = res.data.items
+      } else if (Array.isArray(res.data)) {
+        target.value = res.data
+      }
+    }
   }
 
   return {

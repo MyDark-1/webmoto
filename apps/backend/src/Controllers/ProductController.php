@@ -11,8 +11,30 @@ class ProductController {
     public function index(): void {
         $category = $_GET['category'] ?? null;
         $all = ($_GET['all'] ?? '') === '1';
-        $products = Product::findAll($category, $all);
-        Response::success($products);
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $limit = max(1, min(100, (int)($_GET['limit'] ?? 8)));
+
+        // Фильтрация по характеристикам (?chars[characteristic_id]=value)
+        $charFilters = [];
+        if (isset($_GET['chars']) && is_array($_GET['chars'])) {
+            foreach ($_GET['chars'] as $charId => $value) {
+                $charId = (int)$charId;
+                $value = trim($value);
+                if ($charId > 0 && $value !== '') {
+                    $charFilters[$charId] = $value;
+                }
+            }
+        }
+
+        $result = Product::findAll($category, $all, $page, $limit, $charFilters);
+
+        Response::success([
+            'items' => $result['data'],
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'limit' => $result['limit'],
+            'pages' => (int)ceil($result['total'] / $result['limit']),
+        ]);
     }
 
     public function show(int $id): void {

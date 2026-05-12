@@ -153,7 +153,7 @@ function subscribe() {
 
 onMounted(async () => {
   catalog.fetchCategories()
-  catalog.fetchProducts()
+  catalog.fetchProducts({ page: 1, limit: 8 })
 
   const data = await apiFetch<any[]>('/api/promotions')
   if (data.success && data.data) {

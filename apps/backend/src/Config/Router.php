@@ -11,6 +11,8 @@ use App\Controllers\PromotionController;
 use App\Controllers\FeedbackController;
 use App\Controllers\PromoCodeController;
 use App\Controllers\UserController;
+use App\Controllers\CharacteristicController;
+use App\Controllers\SalonController;
 
 class Router {
     public static function dispatch(): void {
@@ -97,6 +99,14 @@ class Router {
             (new PromoCodeController())->store();
         } elseif (preg_match('#^/promo-codes/(\d+)$#', $uri, $matches) && $method === 'DELETE') {
             (new PromoCodeController())->delete((int)$matches[1]);
+        }
+        // Маршруты характеристик (просмотр доступен всем)
+        elseif ($uri === '/characteristics' && $method === 'GET') {
+            (new CharacteristicController())->index();
+        }
+        // Маршруты салонов (просмотр доступен всем)
+        elseif ($uri === '/salons' && $method === 'GET') {
+            (new SalonController())->index();
         }
         // Маршруты пользователя
         elseif ($uri === '/user/profile' && $method === 'PUT') {

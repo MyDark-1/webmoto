@@ -57,7 +57,7 @@
             <strong class="product-detail__price">{{ formatPrice(product.price) }} ₽</strong>
           </div>
 
-          <!-- Наличие -->
+          <!-- Наличие (кратко) -->
           <div class="product-detail__stock" :class="`product-detail__stock--${product.stock_status || 'in_stock'}`">
             <svg class="product-detail__stock-icon" viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
               <circle cx="8" cy="8" r="6" />
@@ -95,34 +95,65 @@
         </div>
       </div>
 
-      <!-- Описание -->
-      <div v-if="product.description" class="product-detail__section container">
-        <h2 class="product-detail__section-title">Описание</h2>
-        <p class="product-detail__desc-text">{{ product.description }}</p>
-      </div>
+      <!-- Вкладки -->
+      <div class="container product-detail__tabs">
+        <div class="product-detail__tab-headers">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            class="product-detail__tab-btn"
+            :class="{ 'product-detail__tab-btn--active': activeTab === tab.key }"
+            @click="activeTab = tab.key"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
 
-      <!-- Характеристики -->
-      <div v-if="charsLines.length > 0" class="product-detail__section container">
-        <h2 class="product-detail__section-title">Характеристики</h2>
-        <table class="product-detail__chars">
-          <tr v-for="(line, i) in charsLines" :key="i">
-            <td class="product-detail__chars-key">{{ line.key }}</td>
-            <td class="product-detail__chars-val">{{ line.val }}</td>
-          </tr>
-        </table>
-      </div>
+        <!-- Вкладка: Описание -->
+        <div v-if="activeTab === 'description'" class="product-detail__tab-content">
+          <div v-if="product.description" class="product-detail__desc-text">{{ product.description }}</div>
+          <p v-else class="product-detail__empty">Описание отсутствует</p>
+        </div>
 
-      <!-- Спецификации (разделы) -->
-      <div v-if="specs.length > 0" class="product-detail__section container">
-        <h2 class="product-detail__section-title">Спецификации</h2>
-        <div v-for="(section, i) in specs" :key="i" class="product-detail__spec">
-          <h3 class="product-detail__spec-title">{{ section.title }}</h3>
-          <table class="product-detail__chars">
-            <tr v-for="(val, key) in section.items" :key="key">
-              <td class="product-detail__chars-key">{{ key }}</td>
-              <td class="product-detail__chars-val">{{ val }}</td>
+        <!-- Вкладка: Характеристики -->
+        <div v-if="activeTab === 'specs'" class="product-detail__tab-content">
+          <div v-if="charsList.length === 0" class="product-detail__empty">
+            Характеристики отсутствуют
+          </div>
+          <table v-else class="product-detail__chars">
+            <tr v-for="ch in charsList" :key="ch.id">
+              <td class="product-detail__chars-key">{{ ch.characteristic_name }}</td>
+              <td class="product-detail__chars-val">{{ ch.value }}</td>
             </tr>
           </table>
+        </div>
+
+        <!-- Вкладка: Наличие -->
+        <div v-if="activeTab === 'availability'" class="product-detail__tab-content">
+          <h3 class="product-detail__availability-hint">
+            Техника доступна в салонах:
+          </h3>
+          <div v-if="salonsList.length === 0" class="product-detail__empty">
+            Нет в наличии в салонах
+          </div>
+          <div v-else class="product-detail__salons">
+            <div
+              v-for="salon in salonsList"
+              :key="salon.id"
+              class="product-detail__salon-card"
+            >
+              <div class="product-detail__salon-head">
+                <strong>{{ salon.salon_name }}</strong>
+                <span class="product-detail__salon-status">В наличии</span>
+              </div>
+              <div class="product-detail__salon-info">
+                <span>📍 {{ salon.city }}, {{ salon.address }}</span>
+                <a :href="`tel:${salon.phone.replace(/[^+\d]/g, '')}`" class="product-detail__salon-phone">
+                  📞 {{ salon.phone }}
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -137,16 +168,18 @@ import { apiFetch } from '../utils/api'
 import { formatPrice } from '../utils/format'
 import { notifySuccess } from '../utils/notify'
 
-interface SpecSection {
-  title: string
-  items: Record<string, string>
-}
-
 const cart = useCartStore()
 const route = useRoute()
 const product = ref<any>(null)
 const loading = ref(true)
 const activeImage = ref('')
+const activeTab = ref('description')
+
+const tabs = [
+  { key: 'description', label: 'Описание' },
+  { key: 'specs', label: 'Характеристики' },
+  { key: 'availability', label: 'Наличие' },
+]
 
 const stockLabel = computed(() => {
   const map: Record<string, string> = {
@@ -160,7 +193,6 @@ const stockLabel = computed(() => {
 const images = computed(() => {
   const main = product.value?.image
   if (!main) return []
-  // если в image передано несколько ссылок через запятую или массив
   if (Array.isArray(product.value.images)) return product.value.images
   const alt = product.value?.images_extra
   if (alt) {
@@ -170,31 +202,11 @@ const images = computed(() => {
   return [main]
 })
 
-const charsLines = computed(() => {
-  const text = product.value?.characteristics
-  if (!text) return []
-  return text
-    .split('\n')
-    .map((line: string) => line.trim())
-    .filter(Boolean)
-    .map((line: string) => {
-      const sep = line.indexOf(':')
-      if (sep === -1) return { key: line, val: '' }
-      return { key: line.slice(0, sep).trim(), val: line.slice(sep + 1).trim() }
-    })
-})
+// Характеристики из связанной таблицы (product.characteristics_list)
+const charsList = computed(() => product.value?.characteristics_list || [])
 
-const specs = computed(() => {
-  const raw = product.value?.specifications
-  if (!raw) return []
-  try {
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) return parsed as SpecSection[]
-    return []
-  } catch {
-    return []
-  }
-})
+// Салоны из связанной таблицы (product.salons_list)
+const salonsList = computed(() => product.value?.salons_list || [])
 
 function addToCart() {
   if (!product.value) return
@@ -434,21 +446,51 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-/* ───── секции ───── */
-.product-detail__section {
+/* ───── вкладки ───── */
+.product-detail__tabs {
   border-top: 1px solid var(--color-border);
-  padding: 32px 24px 24px;
-  margin-bottom: 0;
+  padding-top: 0;
 }
-.product-detail__section-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 18px;
+.product-detail__tab-headers {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  gap: 0;
 }
+.product-detail__tab-btn {
+  flex: 1;
+  padding: 16px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-muted);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.product-detail__tab-btn:hover {
+  color: var(--color-text);
+}
+.product-detail__tab-btn--active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+.product-detail__tab-content {
+  padding: 32px 0;
+}
+.product-detail__empty {
+  color: var(--color-muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* ───── описание ───── */
 .product-detail__desc-text {
   color: var(--color-muted);
   font-size: 15px;
   line-height: 1.8;
+  white-space: pre-wrap;
 }
 
 /* ───── таблица характеристик ───── */
@@ -477,15 +519,64 @@ onMounted(async () => {
   color: var(--color-text);
 }
 
-/* ───── спецификации ───── */
-.product-detail__spec {
-  margin-bottom: 24px;
+/* ───── салоны ───── */
+.product-detail__availability-hint {
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 20px;
 }
-.product-detail__spec-title {
+.product-detail__salons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.product-detail__salon-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+.product-detail__salon-card:hover {
+  border-color: var(--color-accent);
+}
+.product-detail__salon-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.product-detail__salon-head strong {
   font-size: 16px;
   font-weight: 700;
+}
+.product-detail__salon-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2ecc71;
+  background: rgba(46, 204, 113, 0.12);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.product-detail__salon-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.product-detail__salon-phone {
   color: var(--color-accent);
-  margin-bottom: 12px;
+  text-decoration: none;
+  font-weight: 500;
+}
+.product-detail__salon-phone:hover {
+  text-decoration: underline;
 }
 
 /* ───── медиа ───── */
@@ -493,6 +584,10 @@ onMounted(async () => {
   .product-detail__main {
     grid-template-columns: 1fr;
     gap: 28px;
+  }
+  .product-detail__tab-btn {
+    font-size: 13px;
+    padding: 14px 12px;
   }
 }
 </style>

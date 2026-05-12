@@ -31,6 +31,10 @@
             <input type="number" v-model="form.price" required>
           </div>
           <div class="form-group">
+            <label>Артикул</label>
+            <input type="text" v-model="form.article" placeholder="Например: YZF-R1-2024">
+          </div>
+          <div class="form-group">
             <label>Изображение (URL)</label>
             <input type="text" v-model="form.image">
           </div>
@@ -40,6 +44,22 @@
               <option value="active">Активен</option>
               <option value="inactive">Неактивен</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label>Наличие</label>
+            <select v-model="form.stock_status">
+              <option value="in_stock">В наличии</option>
+              <option value="out_of_stock">Нет в наличии</option>
+              <option value="on_order">Под заказ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Характеристики (по одной строке, ключ: значение)</label>
+            <textarea v-model="form.characteristics" rows="4" placeholder="Материал: Сталь&#10;Вес: 2 кг"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Спецификации (JSON)</label>
+            <textarea v-model="form.specifications" rows="4" placeholder='[{"title":"Двигатель","items":{"Тип":"Бензиновый","Объём":"200 см³"}}]'></textarea>
           </div>
           <div class="form-actions">
             <button type="submit" class="btn">Сохранить</button>
@@ -106,9 +126,13 @@ const form = ref({
   title: '',
   category_id: '',
   description: '',
+  characteristics: '',
+  specifications: '',
   price: '',
   image: '',
-  status: 'active'
+  status: 'active',
+  stock_status: 'in_stock',
+  article: ''
 })
 
 const products = computed(() => dataStore.products)
@@ -147,12 +171,16 @@ const saveProduct = async () => {
 const editProduct = (product) => {
   editingProduct.value = product
   form.value = {
-    title: product.title,
-    category_id: product.category_id,
-    description: product.description,
-    price: product.price,
-    image: product.image,
-    status: product.status
+    title: product.title || '',
+    category_id: product.category_id || '',
+    description: product.description || '',
+    characteristics: product.characteristics || '',
+    specifications: product.specifications || '',
+    price: product.price || '',
+    image: product.image || '',
+    status: product.status || 'active',
+    stock_status: product.stock_status || 'in_stock',
+    article: product.article || ''
   }
   showAddForm.value = true
 }
@@ -164,9 +192,13 @@ const cancelEdit = () => {
     title: '',
     category_id: '',
     description: '',
+    characteristics: '',
+    specifications: '',
     price: '',
     image: '',
-    status: 'active'
+    status: 'active',
+    stock_status: 'in_stock',
+    article: ''
   }
 }
 
@@ -196,10 +228,13 @@ const toggleStatus = async (product) => {
     body: JSON.stringify({
       category_id: product.category_id,
       title: product.title,
-      description: product.description,
+      description: product.description || '',
+      characteristics: product.characteristics || '',
+      specifications: product.specifications || '',
       price: product.price,
-      image: product.image,
-      status: newStatus
+      image: product.image || '',
+      status: newStatus,
+      stock_status: product.stock_status || 'in_stock'
     })
   })
   const data = await response.json()
@@ -280,6 +315,8 @@ onMounted(() => {
   border-radius: 8px;
   width: 500px;
   max-width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 .modal-content h2 {
