@@ -34,6 +34,19 @@ export const router = createRouter({
   }
 })
 
+// Если в URL передан токен (пришли с основного сайта) — сохраняем
+const urlParams = new URLSearchParams(window.location.search)
+const urlToken = urlParams.get('token')
+if (urlToken) {
+  localStorage.setItem('admin_token', urlToken)
+  // Удаляем ?token из URL, но сохраняем остальные query-параметры
+  urlParams.delete('token')
+  const newQuery = urlParams.toString()
+  const base = window.location.pathname
+  const newUrl = newQuery ? base + '?' + newQuery : base
+  window.history.replaceState({}, '', newUrl)
+}
+
 router.beforeEach((to) => {
   const token = localStorage.getItem('admin_token')
   if (!to.meta.public && !token) {

@@ -64,7 +64,8 @@ class OrderController {
             $data['name'] ?? null,
             $data['phone'] ?? null,
             $data['email'] ?? null,
-            $data['wishes'] ?? null
+            $data['wishes'] ?? null,
+            $data['address'] ?? null
         );
 
         foreach ($data['items'] as $item) {

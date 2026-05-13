@@ -11,15 +11,23 @@
     </nav>
     <div class="admin-header__right">
       <span v-if="user.user" class="admin-header__email">{{ user.user.email }}</span>
-      <button class="btn" @click="user.logout()">Выйти</button>
+      <button class="btn" @click="onLogout">Выйти</button>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import Logo from './Logo.vue'
 import { useAdminUserStore } from '../stores/user'
 const user = useAdminUserStore()
+const router = useRouter()
+
+function onLogout() {
+  user.logout()
+  // Редирект на главную страницу обычного пользовательского сайта
+  window.location.href = 'http://localhost:3000/'
+}
 </script>
 
 <style scoped>

@@ -19,13 +19,15 @@
       >
         <div class="promo-card__media">
           <img v-if="promo.image" :src="promo.image" :alt="promo.title" />
+          <div v-else class="promo-card__placeholder">{{ promo.discount }}%</div>
           <span v-if="promo.discount" class="promo-card__discount">
             −{{ promo.discount }}%
           </span>
         </div>
         <div class="promo-card__body">
+          <span class="promo-card__date">{{ formatDate(promo.created_at) }}</span>
           <h3>{{ promo.title }}</h3>
-          <p>{{ promo.content }}</p>
+          <p>{{ excerpt(promo.content) }}</p>
         </div>
       </router-link>
     </div>
@@ -35,9 +37,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { apiFetch } from '../utils/api'
+import { formatDate } from '../utils/format'
 
 const promotions = ref<any[]>([])
 const loading = ref(true)
+
+const excerpt = (text: string) =>
+  text.length > 160 ? text.slice(0, 157) + '…' : text
 
 onMounted(async () => {
   const data = await apiFetch<any[]>('/api/promotions')
@@ -71,7 +77,7 @@ onMounted(async () => {
 }
 .promotions__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 }
 .promo-card {
@@ -79,7 +85,11 @@ onMounted(async () => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   transition: transform 0.2s, border-color 0.2s;
+  text-decoration: none;
+  color: inherit;
 }
 .promo-card:hover {
   transform: translateY(-4px);
@@ -89,11 +99,20 @@ onMounted(async () => {
   position: relative;
   aspect-ratio: 16 / 10;
   background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .promo-card__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.promo-card__placeholder {
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.3);
 }
 .promo-card__discount {
   position: absolute;
@@ -109,15 +128,26 @@ onMounted(async () => {
 }
 .promo-card__body {
   padding: 18px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.promo-card__date {
+  color: var(--color-accent);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 .promo-card__body h3 {
   font-size: 17px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin: 0;
 }
 .promo-card__body p {
   color: var(--color-muted);
   font-size: 14px;
   line-height: 1.5;
+  margin: 0;
 }
 </style>

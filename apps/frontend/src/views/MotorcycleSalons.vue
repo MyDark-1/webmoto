@@ -5,8 +5,8 @@
 
       <div class="salons__grid">
         <article
-          v-for="salon in salons"
-          :key="salon.city"
+          v-for="(salon, idx) in salons"
+          :key="idx"
           class="salon-card"
         >
           <div class="salon-card__image">
@@ -69,10 +69,36 @@
                   >{{ brand }}</span>
                 </div>
               </div>
+
+              <a
+                :href="`https://yandex.ru/maps/?text=${encodeURIComponent(salon.address)}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="salon-card__map-link"
+              >
+                <svg class="salon-card__map-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                Открыть на Яндекс.Картах
+              </a>
             </div>
           </div>
         </article>
       </div>
+
+      <section class="salons__map-section">
+        <h2 class="salons__map-title">Салоны на карте</h2>
+        <div class="salons__map-wrapper">
+          <iframe
+            class="salons__map"
+            src="https://yandex.ru/map-widget/v1/?ll=40.7%2C57.0&z=8&l=map&pt=40.9739,57.0000,pm2rdl~39.8739,57.6299,pm2rdl~40.9269,57.7674,pm2rdl~42.1289,57.4425,pm2rdl~40.3969,56.1365,pm2rdl"
+            allowfullscreen
+            loading="lazy"
+            title="Карта салонов"
+          ></iframe>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -169,6 +195,7 @@ const salons: Salon[] = [
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 28px;
+  margin-bottom: 48px;
 }
 .salon-card {
   background: var(--color-surface);
@@ -282,6 +309,48 @@ const salons: Salon[] = [
   border-radius: 999px;
   letter-spacing: 0.01em;
 }
+.salon-card__map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--color-accent);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.salon-card__map-link:hover {
+  opacity: 1;
+}
+.salon-card__map-link-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Карта */
+.salons__map-section {
+  margin-top: 0;
+}
+.salons__map-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--color-text);
+}
+.salons__map-wrapper {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: #1a1a2e;
+}
+.salons__map {
+  width: 100%;
+  height: 420px;
+  display: block;
+  border: none;
+}
 
 @media (max-width: 600px) {
   .salons {
@@ -289,6 +358,9 @@ const salons: Salon[] = [
   }
   .salons__grid {
     grid-template-columns: 1fr;
+  }
+  .salons__map {
+    height: 300px;
   }
 }
 </style>

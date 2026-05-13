@@ -11,6 +11,10 @@ class AuthController {
     public function login(): void {
         $data = json_decode(file_get_contents('php://input'), true);
 
+        // Принудительное кодирование в UTF-8
+        $data['email'] = mb_convert_encoding($data['email'] ?? '', 'UTF-8', 'UTF-8');
+        $data['password'] = mb_convert_encoding($data['password'] ?? '', 'UTF-8', 'UTF-8');
+
         $errors = Validator::validate($data, [
             'email' => 'required|email',
             'password' => 'required|min:6'
@@ -23,7 +27,16 @@ class AuthController {
 
         $user = User::findByEmail($data['email']);
 
-        if (!$user || !password_verify($data['password'], $user['password'])) {
+        if (!$user) {
+            error_log("Login failed: User not found for email: " . $data['email']);
+            Response::error('Invalid credentials', 401);
+            return;
+        }
+
+        if (!password_verify($data['password'], $user['password'])) {
+            error_log("Login failed: Invalid password for user ID: " . $user['id']);
+            error_log("Stored hash: " . $user['password']);
+            error_log("Attempted password length: " . strlen($data['password']));
             Response::error('Invalid credentials', 401);
             return;
         }
@@ -45,6 +58,12 @@ class AuthController {
     public function register(): void {
         $data = json_decode(file_get_contents('php://input'), true);
 
+        // Принудительное кодирование в UTF-8
+        $data['email'] = mb_convert_encoding($data['email'] ?? '', 'UTF-8', 'UTF-8');
+        $data['password'] = mb_convert_encoding($data['password'] ?? '', 'UTF-8', 'UTF-8');
+        $data['fullname'] = mb_convert_encoding($data['fullname'] ?? '', 'UTF-8', 'UTF-8');
+        $data['phone'] = mb_convert_encoding($data['phone'] ?? '', 'UTF-8', 'UTF-8');
+
         $errors = Validator::validate($data, [
             'email' => 'required|email',
             'password' => 'required|min:6'
@@ -60,10 +79,15 @@ class AuthController {
             return;
         }
 
-        $fullname = trim($data['fullname'] ?? '');
-        $phone = trim($data['phone'] ?? '');
+        $fullname = trim($data['fullname']);
+        $phone = trim($data['phone']);
 
         $userId = User::create($data['email'], $data['password'], $fullname, $phone);
+
+        if (!$userId) {
+            Response::error('Registration failed', 500);
+            return;
+        }
 
         $token = JWT::encode(['user_id' => $userId, 'role' => 'user']);
 

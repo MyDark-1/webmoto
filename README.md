@@ -131,6 +131,20 @@ cd ../..
    mysql -u root -p radar_extreme < database/migrations/007_create_promotions_table.sql
    mysql -u root -p radar_extreme < database/migrations/008_create_feedback_table.sql
    mysql -u root -p radar_extreme < database/migrations/009_create_promo_codes_table.sql
+   mysql -u root -p radar_extreme < database/migrations/010_update_products_add_specs.sql
+   mysql -u root -p radar_extreme < database/migrations/011_update_products_chars_salons.sql
+   ```
+
+   **Важно:** Если у вас уже есть таблица `users` без столбцов `fullname` и `phone`, выполните:
+
+   ```bash
+   mysql -u root -p radar_extreme < database/fix_users_table.sql
+   ```
+
+   Или пересоздайте таблицу (удалит все данные!):
+
+   ```bash
+   mysql -u root -p radar_extreme < database/recreate_users_table.sql
    ```
 
 3. Загрузите тестовые данные:
@@ -325,6 +339,69 @@ npm run build
 
 **`SQLSTATE[HY000] [2002]`** — нет соединения с MySQL.
 Проверьте, что MySQL запущен и параметры в `apps/backend/.env` корректны.
+
+**`SQLSTATE[42S22]: Column not found: 1054 Unknown column 'fullname'`**
+Таблица `users` устарела. Исправьте с помощью PHP-скрипта:
+
+```bash
+cd apps/backend
+php -r "
+require 'vendor/autoload.php';
+\$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+\$dotenv->load();
+\App\Config\Database::connect();
+\$db = \App\Config\Database::getConnection();
+\$columns = \$db->query('SHOW COLUMNS FROM users')->fetchAll(PDO::FETCH_COLUMN);
+foreach (['fullname', 'phone'] as \$col) {
+    if (!in_array(\$col, \$columns)) {
+        \$db->exec(\"ALTER TABLE users ADD COLUMN \$col VARCHAR(255) DEFAULT ''\");
+        echo \"Добавлен столбец \$col\n\";
+    }
+}
+echo 'Готово!\n';
+"
+```
+
+**`SQLSTATE[42S22]: Column not found` для таблицы orders**
+Таблица `orders` устарела. Исправьте:
+
+```bash
+cd apps/backend
+php -r "
+require 'vendor/autoload.php';
+\$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+\$dotenv->load();
+\App\Config\Database::connect();
+\$db = \App\Config\Database::getConnection();
+\$columns = \$db->query('SHOW COLUMNS FROM orders')->fetchAll(PDO::FETCH_COLUMN);
+\$cols = [
+    ['name' => 'name', 'type' => \"VARCHAR(255) DEFAULT ''\"],
+    ['name' => 'phone', 'type' => \"VARCHAR(50) DEFAULT ''\"],
+    ['name' => 'email', 'type' => \"VARCHAR(255) DEFAULT ''\"],
+    ['name' => 'wishes', 'type' => 'TEXT DEFAULT NULL'],
+    ['name' => 'address', 'type' => 'TEXT DEFAULT NULL']
+];
+foreach (\$cols as \$col) {
+    if (!in_array(\$col['name'], \$columns)) {
+        \$db->exec(\"ALTER TABLE orders ADD COLUMN {\$col['name']} {\$col['type']}\");
+        echo \"Добавлен столбец {\$col['name']}\n\";
+    }
+}
+echo 'Готово!\n';
+"
+```
+
+**Заказы не отображаются в админке**
+Причина: таблица `orders` устарела. Выполните скрипт выше. После исправления создайте новый заказ — он появится в админке.
+
+Или пересоздайте таблицу (удалит все данные!):
+
+```bash
+mysql -u root -p radar_extreme < database/recreate_users_table.sql
+```
+
+**`Invalid credentials` при входе после регистрации**
+Это следствие проблемы с колонками таблицы. Выполните шаги выше. Также проверьте логи PHP в консоли сервера — там может быть детальная информация.
 
 **CORS-ошибка в браузере**
 Frontend ходит на API через Vite-прокси — проверьте, что используете `http://localhost:3000` (а не file://) и `CORS_ORIGIN` в `.env` совпадает.

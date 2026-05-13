@@ -29,6 +29,14 @@
           <span v-if="cart.count" class="app-header__badge">{{ cart.count }}</span>
         </router-link>
         <template v-if="user.isAuthenticated">
+          <a
+            v-if="user.isAdmin"
+            href="http://localhost:3001"
+            class="btn btn--primary"
+            @click="open = false"
+          >
+            Админ-панель
+          </a>
           <router-link to="/profile" class="btn btn--ghost" @click="open = false">
             Профиль
           </router-link>

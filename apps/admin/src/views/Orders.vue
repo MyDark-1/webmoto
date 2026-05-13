@@ -78,8 +78,14 @@
             <h3>🛒 Состав заказа</h3>
             <div class="order-items">
               <div class="order-item" v-for="item in selectedOrder.items || []" :key="item.id">
-                <span>{{ item.name }} × {{ item.quantity }}</span>
-                <span>{{ formatPrice(item.price * item.quantity) }} ₽</span>
+                <div class="order-item__info">
+                  <img v-if="item.product_image" :src="item.product_image" alt="" class="order-item__img" />
+                  <div class="order-item__text">
+                    <span class="order-item__title">{{ item.product_title }}</span>
+                    <span class="order-item__qty">× {{ item.quantity }}</span>
+                  </div>
+                </div>
+                <span class="order-item__price">{{ formatPrice(item.price * item.quantity) }} ₽</span>
               </div>
             </div>
             <div class="total-row">
@@ -352,6 +358,43 @@ select {
 
 .order-item:last-child {
   border-bottom: none;
+}
+
+.order-item__info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.order-item__img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #222;
+}
+
+.order-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-item__title {
+  color: #fff;
+  font-weight: 500;
+}
+
+.order-item__qty {
+  color: #888;
+  font-size: 13px;
+}
+
+.order-item__price {
+  color: #ff6600;
+  font-weight: 600;
+  white-space: nowrap;
+  align-self: center;
 }
 
 .total-row {

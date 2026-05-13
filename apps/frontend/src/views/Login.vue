@@ -42,9 +42,16 @@ async function login() {
   const result = await user.login({ email: email.value, password: password.value })
   if (result.success) {
     notifySuccess('Добро пожаловать!')
-    router.push((route.query.redirect as string) || '/')
+    // Если админ — передаём токен через URL, минуя страницу логина админки
+    if (result.data?.user?.role === 'admin') {
+      const token = result.data.token
+      window.location.href = 'http://localhost:3001/?token=' + encodeURIComponent(token)
+    } else {
+      router.push((route.query.redirect as string) || '/')
+    }
   } else {
-    error.value = result.error || 'Не удалось войти'
+    console.error('Login error:', result)
+    error.value = result.error || 'Не удалось войти. Проверьте email и пароль.'
   }
 }
 </script>

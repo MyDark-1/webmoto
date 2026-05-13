@@ -25,10 +25,10 @@ class Order {
         return $stmt->fetchAll();
     }
 
-    public static function create(int $userId, float $total, ?string $name = null, ?string $phone = null, ?string $email = null, ?string $wishes = null): int {
+    public static function create(int $userId, float $total, ?string $name = null, ?string $phone = null, ?string $email = null, ?string $wishes = null, ?string $address = null): int {
         $db = Database::getConnection();
-        $stmt = $db->prepare("INSERT INTO orders (user_id, total, name, phone, email, wishes) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$userId, $total, $name, $phone, $email, $wishes]);
+        $stmt = $db->prepare("INSERT INTO orders (user_id, total, name, phone, email, wishes, address) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$userId, $total, $name, $phone, $email, $wishes, $address]);
         return (int)$db->lastInsertId();
     }
 

@@ -27,12 +27,19 @@ class User {
         string $role = 'user'
     ): int {
         $db = Database::getConnection();
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT, ['cost' => 10]);
+        
         $stmt = $db->prepare(
             "INSERT INTO users (email, password, fullname, phone, role) VALUES (?, ?, ?, ?, ?)"
         );
-        $stmt->execute([$email, $hashedPassword, $fullname, $phone, $role]);
-        return (int)$db->lastInsertId();
+        
+        try {
+            $stmt->execute([$email, $hashedPassword, $fullname, $phone, $role]);
+            return (int)$db->lastInsertId();
+        } catch (\PDOException $e) {
+            error_log("User creation failed: " . $e->getMessage());
+            return 0;
+        }
     }
 
     public static function updateProfile(int $id, ?string $fullname = null, ?string $email = null, ?string $phone = null): bool {

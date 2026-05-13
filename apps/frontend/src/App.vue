@@ -20,9 +20,18 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
 import Toaster from './components/Toaster.vue'
+import { useUserStore } from './stores/user'
+
+const user = useUserStore()
+
+// При старте приложения проверяем токен и загружаем профиль
+onMounted(() => {
+  user.fetchUser()
+})
 </script>
 
 <style>

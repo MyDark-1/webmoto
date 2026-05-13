@@ -1,29 +1,104 @@
 <template>
   <div class="home">
+    <!-- Акции — карусель -->
     <section class="promo">
       <div class="container promo__inner">
         <div class="promo__head">
-          <span class="tag">Акции и новости</span>
+          <span class="tag">Акции</span>
           <h1>Скорость, драйв и выгодные предложения</h1>
           <p>Актуальные акции салона и свежие новости о новинках экстремальной техники.</p>
         </div>
 
-        <div class="promo__grid">
-          <article
-            v-for="(item, index) in promos"
-            :key="item.id"
-            class="promo-card"
-            :class="{ 'promo-card--featured': index === 0 }"
-          >
-            <span class="promo-card__badge">
-              {{ item.discount ? '−' + item.discount + '%' : 'Акция' }}
-            </span>
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.content }}</p>
-            <router-link to="/promotions" class="promo-card__link">
-              Подробнее →
-            </router-link>
-          </article>
+        <div class="carousel-wrapper">
+          <div class="carousel-track" ref="promoTrack" @scroll="onPromoScroll">
+            <article
+              v-for="item in promos"
+              :key="item.id"
+              class="promo-card"
+              :style="{ backgroundImage: `url(${item.image})` }"
+            >
+              <div class="promo-card__overlay">
+                <h3 class="promo-card__title">{{ item.title }}</h3>
+              </div>
+              <span class="promo-card__badge promo-card__badge--discount">
+                −{{ item.discount }}%
+              </span>
+            </article>
+          </div>
+
+          <button
+            class="carousel-btn carousel-btn--prev"
+            @click="scrollPromo(-1)"
+            :disabled="promoIndex === 0"
+          >‹</button>
+          <button
+            class="carousel-btn carousel-btn--next"
+            @click="scrollPromo(1)"
+            :disabled="promoIndex >= promos.length - 1"
+          >›</button>
+
+          <div class="carousel-dots">
+            <span
+              v-for="(_, i) in promos"
+              :key="i"
+              class="carousel-dot"
+              :class="{ 'carousel-dot--active': i === promoIndex }"
+              @click="goToPromo(i)"
+            ></span>
+          </div>
+        </div>
+
+        <router-link to="/promotions" class="promo__all-link">
+          Все акции →
+        </router-link>
+      </div>
+    </section>
+
+    <!-- Новости — карусель -->
+    <section class="section">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title">Новости</h2>
+          <router-link to="/news" class="section__link">Все новости →</router-link>
+        </div>
+
+        <div class="carousel-wrapper">
+          <div class="carousel-track" ref="newsTrack" @scroll="onNewsScroll">
+            <article
+              v-for="item in news"
+              :key="item.id"
+              class="promo-card"
+              :style="{ backgroundImage: `url(${item.image})` }"
+            >
+              <div class="promo-card__overlay">
+                <span class="promo-card__badge promo-card__badge--news">
+                  {{ formatDate(item.created_at) }}
+                </span>
+                <h3 class="promo-card__title">{{ item.title }}</h3>
+              </div>
+            </article>
+          </div>
+
+          <button
+            class="carousel-btn carousel-btn--prev"
+            @click="scrollNews(-1)"
+            :disabled="newsIndex === 0"
+          >‹</button>
+          <button
+            class="carousel-btn carousel-btn--next"
+            @click="scrollNews(1)"
+            :disabled="newsIndex >= news.length - 1"
+          >›</button>
+
+          <div class="carousel-dots">
+            <span
+              v-for="(_, i) in news"
+              :key="i"
+              class="carousel-dot"
+              :class="{ 'carousel-dot--active': i === newsIndex }"
+              @click="goToNews(i)"
+            ></span>
+          </div>
         </div>
       </div>
     </section>
@@ -121,6 +196,12 @@ const subscribed = ref(false)
 const featured = computed(() => catalog.products.slice(0, 8))
 
 const promos = ref<any[]>([])
+const news = ref<any[]>([])
+
+const promoTrack = ref<HTMLElement | null>(null)
+const newsTrack = ref<HTMLElement | null>(null)
+const promoIndex = ref(0)
+const newsIndex = ref(0)
 
 const benefits = [
   {
@@ -145,23 +226,85 @@ const benefits = [
   }
 ]
 
+function formatDate(d: string): string {
+  return new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 function subscribe() {
   subscribed.value = true
   email.value = ''
   setTimeout(() => (subscribed.value = false), 3000)
 }
 
+function scrollPromo(dir: number) {
+  const el = promoTrack.value
+  if (!el) return
+  const cardW = el.children[0]?.clientWidth ?? 360
+  const gap = 20
+  el.scrollBy({ left: (cardW + gap) * dir, behavior: 'smooth' })
+}
+
+function scrollNews(dir: number) {
+  const el = newsTrack.value
+  if (!el) return
+  const cardW = el.children[0]?.clientWidth ?? 360
+  const gap = 20
+  el.scrollBy({ left: (cardW + gap) * dir, behavior: 'smooth' })
+}
+
+function goToPromo(i: number) {
+  const el = promoTrack.value
+  if (!el) return
+  const cardW = el.children[0]?.clientWidth ?? 360
+  const gap = 20
+  el.scrollTo({ left: (cardW + gap) * i, behavior: 'smooth' })
+}
+
+function goToNews(i: number) {
+  const el = newsTrack.value
+  if (!el) return
+  const cardW = el.children[0]?.clientWidth ?? 360
+  const gap = 20
+  el.scrollTo({ left: (cardW + gap) * i, behavior: 'smooth' })
+}
+
+function onPromoScroll() {
+  const el = promoTrack.value
+  if (!el) return
+  const cardW = el.children[0]?.clientWidth ?? 360
+  const gap = 20
+  promoIndex.value = Math.round(el.scrollLeft / (cardW + gap))
+}
+
+function onNewsScroll() {
+  const el = newsTrack.value
+  if (!el) return
+  const cardW = el.children[0]?.clientWidth ?? 360
+  const gap = 20
+  newsIndex.value = Math.round(el.scrollLeft / (cardW + gap))
+}
+
 onMounted(async () => {
   catalog.fetchCategories()
   catalog.fetchProducts({ page: 1, limit: 8 })
 
-  const data = await apiFetch<any[]>('/api/promotions')
-  if (data.success && data.data) {
-    // сортируем по created_at — новые первыми, берём не больше 3
-    const sorted = [...data.data].sort(
+  const [promoRes, newsRes] = await Promise.all([
+    apiFetch<any[]>('/api/promotions'),
+    apiFetch<any[]>('/api/news')
+  ])
+
+  if (promoRes.success && promoRes.data) {
+    const sorted = [...promoRes.data].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
-    promos.value = sorted.slice(0, 3)
+    promos.value = sorted
+  }
+
+  if (newsRes.success && newsRes.data) {
+    const sorted = [...newsRes.data].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    news.value = sorted
   }
 })
 </script>
@@ -199,74 +342,157 @@ onMounted(async () => {
   font-size: 17px;
 }
 
-.promo__grid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
-  gap: 20px;
+.promo__all-link {
+  display: inline-block;
+  margin-top: 24px;
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
 }
 
-.promo-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 28px;
+/* Карусель */
+.carousel-wrapper {
+  position: relative;
+}
+
+.carousel-track {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 240px;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 16px;
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+.carousel-btn:hover {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+.carousel-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+  pointer-events: none;
+}
+
+.carousel-btn--prev {
+  left: -22px;
+}
+
+.carousel-btn--next {
+  right: -22px;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+  cursor: pointer;
+  transition: background 0.2s, width 0.3s;
+}
+
+.carousel-dot--active {
+  background: var(--color-accent);
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* Карточка акции/новости */
+.promo-card {
+  flex: 0 0 360px;
+  scroll-snap-align: start;
+  position: relative;
+  border-radius: var(--radius-lg);
+  min-height: 300px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: transform 0.2s ease;
 }
 
 .promo-card:hover {
   transform: translateY(-4px);
-  border-color: var(--color-accent);
 }
 
-.promo-card--featured {
-  background: linear-gradient(135deg, #ff5a1f 0%, #ffae00 100%);
-  border-color: transparent;
-  color: #0e0e10;
+.promo-card__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 28px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 70%, transparent 100%);
+  color: #fff;
 }
 
-.promo-card--featured .promo-card__badge {
-  background: rgba(14, 14, 16, 0.15);
-  color: #0e0e10;
-}
-
-.promo-card--featured .promo-card__link {
-  color: #0e0e10;
-}
-
-.promo-card__badge {
-  align-self: flex-start;
-  background: rgba(255, 90, 31, 0.15);
-  color: var(--color-accent);
-  padding: 4px 10px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+.promo-card__badge--discount {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  background: var(--color-accent);
+  color: #fff;
+  padding: 5px 12px;
+  font-size: 13px;
   font-weight: 700;
   border-radius: 999px;
 }
 
-.promo-card h3 {
-  font-size: 22px;
+.promo-card__badge--news {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.15);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.promo-card__title {
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
+  margin: 0;
 }
 
-.promo-card p {
-  opacity: 0.85;
-  font-size: 14px;
-  flex: 1;
-}
-
-.promo-card__link {
-  color: var(--color-accent);
-  font-weight: 600;
-  font-size: 14px;
-}
-
+/* Секции */
 .benefits__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -370,8 +596,12 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
-  .promo__grid {
-    grid-template-columns: 1fr;
+  .promo-card {
+    flex: 0 0 280px;
+    min-height: 240px;
+  }
+  .carousel-btn {
+    display: none;
   }
   .newsletter__inner {
     grid-template-columns: 1fr;
