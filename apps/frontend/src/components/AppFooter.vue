@@ -11,6 +11,7 @@
           <router-link to="/products">Каталог</router-link>
           <router-link to="/promotions">Акции</router-link>
           <router-link to="/news">Новости</router-link>
+          <router-link to="/about">О компании</router-link>
         </div>
         <div>
           <h4>Контакты</h4>

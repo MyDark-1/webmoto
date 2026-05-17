@@ -74,7 +74,7 @@ www2/
 - **Node.js** ≥ 18 (рекомендуется 20+)
 - **npm** ≥ 9
 - **PHP** ≥ 8.2 с расширениями `pdo_mysql`, `mbstring`, `openssl`
-- **MySQL** ≥ 8.0 (или совместимая MariaDB)
+- **MySQL** ≥ 8.0 (или совместимая MariaDB) — через XAMPP
 - **Composer** ≥ 2
 
 Проверить установленные версии:
@@ -105,13 +105,15 @@ cd ../..
 
 ## Настройка БД
 
-1. Создайте базу данных:
+1. Запустите MySQL через XAMPP Control Panel.
+
+2. Создайте базу данных:
 
    ```sql
    CREATE DATABASE radar_extreme CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
 
-2. Примените миграции (из корня репозитория):
+3. Примените миграции (из корня репозитория):
 
    ```bash
    for f in database/migrations/*.sql; do
@@ -147,7 +149,7 @@ cd ../..
    mysql -u root -p radar_extreme < database/recreate_users_table.sql
    ```
 
-3. Загрузите тестовые данные:
+4. Загрузите тестовые данные:
 
    ```bash
    mysql -u root -p radar_extreme < database/seeds/categories.sql
@@ -155,12 +157,68 @@ cd ../..
    mysql -u root -p radar_extreme < database/seeds/sample_products.sql
    ```
 
+При первом запуске:
+1. Создастся Docker-контейнер с MySQL 8.0
+2. Данные будут храниться в папке `database/mysql-data/`
+3. После готовности MySQL скрипт автоматически продолжит запуск backend
+
+### Применение миграций
+
+После первого запуска выполните миграции вручную (из корня репозитория):
+
+```bash
+# Все миграции сразу
+for f in database/migrations/*.sql; do
+  docker exec radar-mysql mysql -u root -proot radar_extreme < "$f"
+done
+
+# Или по одной:
+docker exec radar-mysql mysql -u root -proot radar_extreme < database/migrations/001_create_users_table.sql
+# ... и так далее для каждой миграции
+```
+
+**Важно:** Если у вас уже есть таблица `users` без столбцов `fullname` и `phone`, выполните:
+
+```bash
+docker exec radar-mysql mysql -u root -proot radar_extreme < database/fix_users_table.sql
+```
+
+Или пересоздайте таблицу (удалит все данные!):
+
+```bash
+docker exec radar-mysql mysql -u root -proot radar_extreme < database/recreate_users_table.sql
+```
+
+### Загрузка тестовых данных
+
+```bash
+docker exec radar-mysql mysql -u root -proot radar_extreme < database/seeds/categories.sql
+docker exec radar-mysql mysql -u root -proot radar_extreme < database/seeds/admin_user.sql
+docker exec radar-mysql mysql -u root -proot radar_extreme < database/seeds/sample_products.sql
+```
+
+### Управление MySQL контейнером
+
+```bash
+# Ручной запуск (если нужно)
+npm run mysql:start
+
+# Остановка (удаляет контейнер)
+npm run mysql:stop
+
+# Посмотреть логи
+docker logs radar-mysql
+
+# Подключиться к MySQL из командной строки
+docker exec -it radar-mysql mysql -u root -proot radar_extreme
+```
+
 ## Конфигурация окружения
 
 Создайте/отредактируйте файл `apps/backend/.env`:
 
 ```env
-DB_HOST=localhost
+DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_NAME=radar_extreme
 DB_USER=root
@@ -172,7 +230,7 @@ JWT_EXPIRATION=86400
 CORS_ORIGIN=http://localhost:3000
 ```
 
-> **Важно**: `JWT_SECRET` обязательно поменяйте перед деплоем.
+> **Важно:** `JWT_SECRET` обязательно поменяйте перед деплоем.
 
 Frontend и admin обращаются к API через прокси Vite (`/api → http://localhost:8000`), правки переменных не требуют.
 
@@ -338,7 +396,7 @@ npm run build
 Не выполнен `composer install` в `apps/backend`.
 
 **`SQLSTATE[HY000] [2002]`** — нет соединения с MySQL.
-Проверьте, что MySQL запущен и параметры в `apps/backend/.env` корректны.
+Проверьте, что MySQL запущен через XAMPP и параметры в `apps/backend/.env` корректны.
 
 **`SQLSTATE[42S22]: Column not found: 1054 Unknown column 'fullname'`**
 Таблица `users` устарела. Исправьте с помощью PHP-скрипта:
@@ -390,9 +448,6 @@ foreach (\$cols as \$col) {
 echo 'Готово!\n';
 "
 ```
-
-**Заказы не отображаются в админке**
-Причина: таблица `orders` устарела. Выполните скрипт выше. После исправления создайте новый заказ — он появится в админке.
 
 Или пересоздайте таблицу (удалит все данные!):
 

@@ -87,3 +87,4 @@ composer.lock
 
 # Database
 *.sql.bak
+database/mysql-data/

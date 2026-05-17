@@ -14,6 +14,7 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Profile from '../views/Profile.vue'
 import NotFound from '../views/NotFound.vue'
+import About from '../views/About.vue'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', component: Home, meta: { title: 'Главная' } },
@@ -21,6 +22,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/products/:id', component: ProductDetail, meta: { title: 'Товар' } },
   { path: '/cart', component: Cart, meta: { title: 'Корзина' } },
   { path: '/salons', component: MotorcycleSalons, meta: { title: 'Мотосалоны' } },
+  { path: '/about', component: About, meta: { title: 'О компании' } },
   {
     path: '/checkout',
     component: Checkout,

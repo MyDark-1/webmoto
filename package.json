@@ -1,11 +1,4 @@
 {
-  "name": "radar-extreme",
-  "version": "1.0.0",
-  "private": true,
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -13,11 +6,5 @@
     "start": "npm run dev:all",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,vue,md}\""
-  },
-  "devDependencies": {
-    "concurrently": "^9.2.1",
-    "prettier": "^3.4.2",
-    "turbo": "^2.3.3"
-  },
-  "packageManager": "npm@9.0.0"
+  }
 }

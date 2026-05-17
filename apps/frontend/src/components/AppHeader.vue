@@ -20,6 +20,7 @@
         <router-link to="/news" @click="open = false">Новости</router-link>
         <router-link to="/promotions" @click="open = false">Акции</router-link>
         <router-link to="/salons" @click="open = false">Мотосалоны</router-link>
+        <router-link to="/about" @click="open = false">О компании</router-link>
       </nav>
 
       <div class="app-header__actions" :class="{ 'app-header__actions--open': open }">
